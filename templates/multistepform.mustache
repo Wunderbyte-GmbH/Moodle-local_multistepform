@@ -31,40 +31,61 @@
     Example context (json):
     {
         "userid": 123,
-        "stepid": 456,
+        "step": 456,
         "totalsteps": 3,
         "formhtml": "<div>Form HTML goes here</div>"
     }
 
 }}
 
-<div class="multistep-form-wrapper" data-step-id="{{stepid}}" data-total-steps="{{totalsteps}}" data-uniqueid="{{uniqueid}}">
-    {{! Header (optional) }}
-    {{! Step indicator (optional) }}
-    <div class="step-indicator">
-        {{#str}} step, local_multistepform {{/str}} <span class="current-step">{{stepid}}</span> of {{totalsteps}}
+<div class="multistep-form-wrapper p-4 bg-white rounded shadow-sm" data-step-id="{{step}}" data-total-steps="{{totalsteps}}" data-uniqueid="{{uniqueid}}">
+
+    {{! Step Progress Header }}
+    <div class="step-header mb-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="step-text text-muted">
+                {{#str}} step, local_multistepform {{/str}} <span class="current-step fw-bold">{{step}}</span> / {{totalsteps}}
+            </div>
+            <div class="step-progress w-50">
+                <div class="progress">
+                    <div class="progress-bar bg-primary" role="progressbar"
+                        style="width: calc(({{step}} / {{totalsteps}}) * 100%)"
+                        aria-valuenow="{{step}}" aria-valuemin="0" aria-valuemax="{{totalsteps}}">
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    {{! Placeholder for dynamically loaded AJAX form }}
+    {{! AJAX-loaded form content }}
     <div class="multistep-form-container multistep_form" data-region="multistepformcontainer">
         {{#formhtml}}
             {{{formhtml}}}
         {{/formhtml}}
         {{^formhtml}}
-            <div class="loading">Loading form...</div>
+            <div class="loading text-center text-muted py-3">
+                <i class="fa fa-spinner fa-spin me-2"></i>Loading form...
+            </div>
         {{/formhtml}}
     </div>
 
     {{! Navigation buttons }}
-    <div class="multistep-form-nav mt-3">
-        <button class="btn btn-secondary" data-step='previous'>{{#str}} previous {{/str}}</button>
-        <button class="btn btn-primary" data-step='next'>{{#str}} next {{/str}}</button>
-        <button class="btn btn-success submit-form d-none">{{#str}} submit {{/str}}</button>
+    <div class="multistep-form-nav mt-4 d-flex justify-content-between">
+        <button class="btn btn-primary me-2" {{#disableprevious}} disabled {{/disableprevious}} data-step='previous'>
+            <i class="fa fa-arrow-left ms-1"></i>{{#str}} previous {{/str}}
+        </button>
+
+        <button class="btn btn-success submit-form {{^disablenext}} d-none {{/disablenext}}" data-step='submit'>
+                <i class="fa fa-check-circle me-1"></i>{{#str}} submit {{/str}}
+            </button>
+        <button class="btn btn-primary me-2" {{#disablenext}} disabled {{/disablenext}} data-step='next'>
+            {{#str}} next {{/str}}<i class="fa fa-arrow-right ms-1"></i>
+        </button>
     </div>
 </div>
 
 {{#js}}
     require(['local_multistepform/formsteps'], function(fn) {
-        fn.init('{{uniqueid}}', {{stepid}}, '{{{formclass}}}', '{{{formdata}}}');
+        fn.init('{{uniqueid}}', {{step}}, '{{{formclass}}}', '{{{formdata}}}');
     });
 {{/js}}

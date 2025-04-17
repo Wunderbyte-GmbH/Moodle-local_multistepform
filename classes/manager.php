@@ -24,6 +24,11 @@
 
 namespace local_multistepform;
 
+use cache;
+use moodleform;
+use MoodleQuickForm;
+use stdClass;
+
 /**
  * Submit data to the server.
  * @package local_multistepform
@@ -69,13 +74,31 @@ class manager {
      * @param array $steps
      * @param int|null $recordid
      * @param bool $canmovesteps
+     * @param bool $hasreview
      *
      */
-    public function __construct(string $uniqueid, array $steps, ?int $recordid = null, bool $canmovesteps = false) {
+    public function __construct(string $uniqueid, array $steps, ?int $recordid = null, bool $canmovesteps = false, bool $hasreview = true) {
         $this->uniqueid = $uniqueid;
         $this->steps = $steps;
         $this->recordid = $recordid;
         $this->canmovesteps = $canmovesteps;
+
+        $cache = cache::make('local_multistepform', 'multistepform');
+        $cachedata = $cache->get('multistepform_' . $this->uniqueid);
+
+        // If the cache is empty, we need to create it.
+        // If the cache is not empty, we need to load the data from the cache.
+
+        // Now add the data from the cache to the steps array.
+        if ($cachedata) {
+            foreach ($cachedata as $stepkey => $step) {
+                foreach ($step as $key => $value) {
+                    $this->steps[$stepkey]['formdata'][$key] = $value;
+                }
+            }
+        }
+
+
 
         $data = [
             'uniqueid' => $this->uniqueid,
@@ -89,6 +112,58 @@ class manager {
         ]);
     }
 
+    /**
+     * Definition.
+     *
+     * @return void
+     *
+     */
+    public static function definition(MoodleQuickForm $mform, array $data): void {
+
+        $uniqueid = $data['uniqueid'];
+        $step = $data['step'];
+        $stepidentifier = $data['stepidentifier'] ?? '';
+
+        $mform->addElement('hidden', 'uniqueid', $uniqueid);
+        $mform->setType('uniqueid', PARAM_TEXT);
+        $mform->addElement('hidden', 'step', $step);
+        $mform->setType('step', PARAM_INT);
+        $mform->addElement('hidden', 'stepidentifier', $stepidentifier);
+        $mform->setType('stepidentifier', PARAM_TEXT);
+    }
+
+    /**
+     * Process the form submission.
+     *
+     * @param \stdClass $data
+     * @return void
+     *
+     */
+    public static function process_dynamic_submission($data): void {
+        global $DB;
+
+        $uniqueid = $data->uniqueid;
+        $step = $data->step;
+
+        // Load the manager instance.
+        $manager = self::return_class_by_uniqueid($uniqueid);
+        if ($manager) {
+            // Save the step data.
+            $manager->save_step_data($step, $data);
+        } else {
+            throw new \moodle_exception('Invalid uniqueid');
+        }
+    }
+
+    /**
+     * Set data for the form.
+     *
+     * @return void
+     *
+     */
+    public function set_data_for_dynamic_submission(): void {
+
+    }
     /**
      * Returns the class instance by uniqueid.
      *
@@ -132,14 +207,32 @@ class manager {
      * Save the step data.
      *
      * @param string $step
-     * @param array $stepdata
+     * @param stdClass $stepdata
      *
      * @return void
      *
      */
-    public function save_step_data(string $step, array $stepdata): void {
-        $this->data[$step] = $stepdata;
-        $this->persist();
+    public function save_step_data(string $step, stdClass $stepdata): void {
+
+        // First, we save each step in the cache.
+        $cache = cache::make('local_multistepform', 'multistepform');
+        $data = $cache->get('multistepform_' . $this->uniqueid);
+
+        if (
+            !$data
+            || empty($data)
+        ) {
+            $data = [];
+        }
+        $data[$step] = $stepdata;
+
+        $cache->set('multistepform_' . $this->uniqueid, $data);
+
+        // Now we need to check if this is the last step.
+        if ($step == count($this->steps)) {
+            // If so, we peramanently save the data.
+            $this->persist();
+        }
     }
 
     /**
@@ -156,26 +249,12 @@ class manager {
 
     /**
      * Persist the data to the database.
+     * This method needs to be overriden in the child class to save the data the way it's needed.
      *
      * @return void
      *
      */
     protected function persist(): void {
-        global $DB, $USER;
-
-        $record = (object)[
-            'id' => $this->recordid,
-            'userid' => $USER->id,
-            'datajson' => json_encode($this->data),
-            'timemodified' => time()
-        ];
-
-        if ($this->recordid) {
-            $DB->update_record('local_multistepform_data', $record);
-        } else {
-            $record->timecreated = time();
-            $this->recordid = $DB->insert_record('local_multistepform_data', $record);
-        }
     }
 
     /**
@@ -211,7 +290,7 @@ class manager {
     /**
      * Returns the array for the webservice.
      *
-     * @param int $stepid
+     * @param int $step
      *
      * @return array
      *
@@ -225,15 +304,19 @@ class manager {
 
         $formdata = $this->steps[$step]['formdata'] ?? [];
         $formclass = $this->steps[$step]['formclass'];
-        $formdata['stepid'] = $step;
+        $formdata['step'] = $step;
+        $formdata['disableprevious'] = $step == 1 ? true : false;
+        $formdata['disablenext'] = $step == count($this->steps) ? true : false;
         $formdata['formclass'] = str_replace('\\', '\\\\', $formclass);
         $formdata['totalsteps'] = count($this->steps);
 
         $formdata['uniqueid'] = $this->uniqueid;
+
         $formdata['formdata'] = json_encode($formdata);
 
         $form = new $formclass(null, null, 'post', '', [], true, $formdata);
-        // Set the form data with the same method that is called when loaded from JS. It should correctly set the data for the supplied arguments.
+        // Set the form data with the same method that is called when loaded from JS.
+        // It should correctly set the data for the supplied arguments.
         $form->set_data_for_dynamic_submission();
 
         $formdata['formhtml'] = $form->render();

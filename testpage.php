@@ -36,16 +36,11 @@ $PAGE->set_heading(get_string('pluginname', 'local_multistepform'));
 
 echo $OUTPUT->header();
 
-/* $form = new local_multistepform\form\step1(null, null, 'post', '', [], true, ['stepid' => 1]);
-// Set the form data with the same method that is called when loaded from JS. It should correctly set the data for the supplied arguments.
-$form->set_data_for_dynamic_submission();
-// Render the form in a specific container, there should be nothing else in the same container.
-echo html_writer::div($form->render(), '', ['id' => 'formcontainer']);
- */
 $data = [
     1 => [
         'label' => get_string('step', 'local_multistepform', 1),
         'formclass' => 'local_multistepform\\form\\step1',
+        'stepidentifier' => 'firststep',
         'formdata' => [
             'id' => 1,
         ],
@@ -53,6 +48,7 @@ $data = [
     2 => [
         'label' => get_string('step', 'local_multistepform', 2),
         'formclass' => 'local_multistepform\\form\\step2',
+        'stepidentifier' => 'secondstep',
         'formdata' => [
             'id' => 1,
         ],
@@ -60,6 +56,7 @@ $data = [
     3 => [
             'label' => get_string('step', 'local_multistepform', 3),
             'formclass' => 'local_multistepform\\form\\step3',
+            'stepidentifier' => 'thirdstep',
             'formdata' => [
                 'step' => 1,
             ],

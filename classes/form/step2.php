@@ -25,6 +25,7 @@
 namespace local_multistepform\form;
 
 use core_form\dynamic_form;
+use local_multistepform\manager;
 
 /**
  * Demo step 2 form.
@@ -38,6 +39,9 @@ class step2 extends dynamic_form {
      */
     protected function definition(): void {
         $mform = $this->_form;
+        $formdata = $this->_ajaxformdata ?? $this->_customdata ?? [];
+
+        manager::definition($mform, $formdata);
 
         $mform->addElement('text', 'lastname', get_string('lastname'));
         $mform->setType('lastname', PARAM_NOTAGS);
@@ -52,6 +56,7 @@ class step2 extends dynamic_form {
      */
     public function process_dynamic_submission(): void {
         $data = $this->get_data();
+        manager::process_dynamic_submission($data);
     }
 
     /**
@@ -61,10 +66,10 @@ class step2 extends dynamic_form {
      *
      */
     public function set_data_for_dynamic_submission(): void {
-        // $data = $this->_customdata['manager']->get_step_data($this->_customdata['step']);
-        // if ($data) {
-        //    $this->set_data($data);
-        //}
+        $data = $this->_ajaxformdata ?? $this->_customdata ?? [];
+        if ($data) {
+            $this->set_data($data);
+        }
     }
 
     /**

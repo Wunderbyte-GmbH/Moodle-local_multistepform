@@ -75,7 +75,7 @@ class load_step extends external_api {
         $data = $manager->get_step($step);
 
         return [
-            'stepid' => $data['stepid'],
+            'step' => $data['step'],
             'formclass' => $data['formclass'],
             'data' => json_encode($data),
         ];
@@ -90,7 +90,7 @@ class load_step extends external_api {
     public static function execute_returns() {
         return new external_single_structure(
             [
-                'stepid' => new external_value(PARAM_INT, 'Step ID'),
+                'step' => new external_value(PARAM_INT, 'Step ID'),
                 'formclass' => new external_value(PARAM_TEXT, 'Formclass status'),
                 'data' => new external_value(PARAM_RAW, 'Json encoded data'),
             ]

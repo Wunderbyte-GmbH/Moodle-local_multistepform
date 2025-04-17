@@ -19,6 +19,7 @@ const SELECTORS = {
 
 var dynamicForm = null;
 var currentstep = 0;
+var previousstep = 0;
 
 export const init = (uniqueid, initialstep, formclass, data) => {
 
@@ -43,6 +44,7 @@ export const init = (uniqueid, initialstep, formclass, data) => {
 
             const direction = e.currentTarget.getAttribute('data-step');
 
+            previousstep = currentstep;
             switch (direction) {
                 case 'next':
                     currentstep++;
@@ -51,15 +53,22 @@ export const init = (uniqueid, initialstep, formclass, data) => {
                     currentstep--;
                     break;
                 default:
+                    currentstep = -1;
                     break;
             }
             // eslint-disable-next-line no-console
             console.log('next step', currentstep);
 
-            loadStep(uniqueid, currentstep);
+            dynamicForm.submitFormAjax().then(() => {
+                // eslint-disable-next-line no-console
+                console.log('form submitted');
+                return true;
+            }).catch(e => {
+                // eslint-disable-next-line no-console
+                console.log(e);
+            });
         });
     });
-
     const container = multiformcontainer.querySelector(SELECTORS.FORMCONTAINER);
 
     // eslint-disable-next-line no-console
@@ -147,6 +156,14 @@ function initializeForm(container, formclass, data = []) {
         dynamicForm.container.innerHTML = '';
         dynamicForm = null;
 
-        loadStep(uniqueid, 2);
+        loadStep(uniqueid, currentstep);
+    });
+
+    dynamicForm.addEventListener(dynamicForm.events.SERVER_VALIDATION_ERROR, e => {
+        const response = e.detail;
+        // eslint-disable-next-line no-console
+        console.log(response);
+        currentstep = previousstep;
+        // loadStep(uniqueid, currentstep);
     });
 }
