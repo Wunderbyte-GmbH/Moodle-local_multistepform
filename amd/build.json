@@ -1,0 +1,5 @@
+{
+  "amd": {
+    "formsteps": "amd/src/formsteps.js"
+  }
+}
