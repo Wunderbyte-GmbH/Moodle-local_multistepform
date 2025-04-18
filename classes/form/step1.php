@@ -46,6 +46,18 @@ class step1 extends dynamic_form {
         $mform->addElement('text', 'firstname', get_string('firstname'));
         $mform->setType('firstname', PARAM_NOTAGS);
         $mform->addRule('firstname', null, 'required');
+
+        $choices = [
+            1 => 'Choice 1',
+            2 => 'Choice 2',
+        ];
+
+        $options = [
+            'multiple' => false,
+            'placeholder' => get_string('select'),
+            'noresults' => get_string('noresults'),
+        ];
+        $mform->addElement('autocomplete', 'mychoice', 'choice', $choices, $options);
     }
 
     /**
@@ -56,7 +68,8 @@ class step1 extends dynamic_form {
      */
     public function process_dynamic_submission(): void {
         $data = $this->get_data();
-        manager::process_dynamic_submission($data);
+        $mform = $this->_form;
+        manager::process_dynamic_submission($data, $mform);
     }
 
     /**

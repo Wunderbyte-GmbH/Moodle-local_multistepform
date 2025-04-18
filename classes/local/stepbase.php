@@ -42,10 +42,6 @@ class step1 extends dynamic_form {
         $formdata = $this->_ajaxformdata ?? $this->_customdata ?? [];
 
         manager::definition($mform, $formdata);
-
-        $mform->addElement('text', 'firstname', get_string('firstname'));
-        $mform->setType('firstname', PARAM_NOTAGS);
-        $mform->addRule('firstname', null, 'required');
     }
 
     /**

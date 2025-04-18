@@ -25,9 +25,12 @@
 namespace local_multistepform;
 
 use cache;
+use local_multistepform\local\cachestore;
 use moodleform;
 use MoodleQuickForm;
+use ReflectionClass;
 use stdClass;
+use Throwable;
 
 /**
  * Submit data to the server.
@@ -84,45 +87,32 @@ class manager {
      * Constructor for the manager class.
      *
      * @param array $steps
-     * @param int|null $recordid
+     * @param int $recordid
      * @param bool $canmovesteps
      * @param bool $hasreview
      *
      */
-    public function __construct(string $uniqueid, array $steps, ?int $recordid = null, bool $canmovesteps = false, bool $hasreview = false) {
+    public function __construct(string $uniqueid, array $steps, int $recordid = 0, bool $canmovesteps = true, bool $hasreview = true) {
         $this->uniqueid = $uniqueid;
         $this->steps = $steps;
         $this->recordid = $recordid;
         $this->canmovesteps = $canmovesteps;
         $this->hasreview = $hasreview;
 
-        $cache = cache::make('local_multistepform', 'multistepform');
-        $cachedata = $cache->get('multistepform_' . $this->uniqueid);
+        $cachedata = cachestore::get_multiform($this->uniqueid, $this->recordid);
 
-        // If the cache is empty, we need to create it.
-        // If the cache is not empty, we need to load the data from the cache.
-
-        // Now add the data from the cache to the steps array.
-        if ($cachedata) {
-            foreach ($cachedata as $stepkey => $step) {
-                foreach ($step as $key => $value) {
-                    $this->steps[$stepkey]['formdata'][$key] = $value;
-                }
-            }
+        if (empty($cachedata)) {
+            $cachedata = [
+                'uniqueid' => $this->uniqueid,
+                'steps' => $this->steps,
+                'recordid' => $this->recordid,
+                'canmovesteps' => $this->canmovesteps,
+            ];
+            cachestore::set_multiform($this->uniqueid, $this->recordid, $cachedata);
+        } else {
+            // We might have already stored values for the steps.
+            $this->steps = $cachedata['steps'];
         }
-
-
-
-        $data = [
-            'uniqueid' => $this->uniqueid,
-            'steps' => $this->steps,
-            'recordid' => $this->recordid,
-            'canmovesteps' => $this->canmovesteps,
-        ];
-
-        set_user_preferences([
-            'multistepform_' . $this->uniqueid => json_encode($data),
-        ]);
     }
 
     /**
@@ -136,33 +126,41 @@ class manager {
         $uniqueid = $data['uniqueid'];
         $step = $data['step'];
         $stepidentifier = $data['stepidentifier'] ?? '';
+        $recordid = $data['recordid'] ?? '';
+        $formclass = $data['formclass'] ?? '';
 
         $mform->addElement('hidden', 'uniqueid', $uniqueid);
         $mform->setType('uniqueid', PARAM_TEXT);
+        $mform->addElement('hidden', 'recordid', $recordid);
+        $mform->setType('recordid', PARAM_INT);
         $mform->addElement('hidden', 'step', $step);
         $mform->setType('step', PARAM_INT);
         $mform->addElement('hidden', 'stepidentifier', $stepidentifier);
         $mform->setType('stepidentifier', PARAM_TEXT);
+        $mform->addElement('hidden', 'formclass', $formclass);
+        $mform->setType('formclass', PARAM_RAW);
     }
 
     /**
      * Process the form submission.
      *
-     * @param \stdClass $data
+     * @param stdClass $data
+     * @param MoodleQuickForm|null $mform
      * @return void
      *
      */
-    public static function process_dynamic_submission($data): void {
+    public static function process_dynamic_submission($data, ?MoodleQuickForm $mform = null): void {
         global $DB;
 
         $uniqueid = $data->uniqueid;
+        $recordid = $data->recordid;
         $step = $data->step;
 
         // Load the manager instance.
-        $manager = self::return_class_by_uniqueid($uniqueid);
+        $manager = self::return_class_by_uniqueid($uniqueid, $recordid);
         if ($manager) {
             // Save the step data.
-            $manager->save_step_data($step, $data);
+            $manager->save_step_data($step, $data, $mform);
         } else {
             throw new \moodle_exception('Invalid uniqueid');
         }
@@ -175,22 +173,21 @@ class manager {
      *
      */
     public function set_data_for_dynamic_submission(): void {
-
     }
     /**
      * Returns the class instance by uniqueid.
      *
      * @param string $uniqueid
+     * @param int $recordid
      *
      * @return null|self
      *
      */
-    public static function return_class_by_uniqueid(string $uniqueid) {
+    public static function return_class_by_uniqueid(string $uniqueid, int $recordid = 0): ?self {
         global $DB;
 
-        $msdata = get_user_preferences('multistepform_' . $uniqueid);
+        $msdata = cachestore::get_multiform($uniqueid, $recordid);
         if ($msdata) {
-            $msdata = json_decode($msdata, true);
             $manager = new self($uniqueid, $msdata['steps'], $msdata['recordid'], $msdata['canmovesteps']);
             return $manager;
         } else {
@@ -219,27 +216,39 @@ class manager {
     /**
      * Save the step data.
      *
-     * @param string $step
+     * @param int $step
      * @param stdClass $stepdata
+     * @param MoodleQuickForm|null $mform
      *
      * @return void
      *
      */
-    public function save_step_data(string $step, stdClass $stepdata): void {
+    public function save_step_data(int $step, stdClass $stepdata, ?MoodleQuickForm $mform): void {
 
         // First, we save each step in the cache.
-        $cache = cache::make('local_multistepform', 'multistepform');
-        $data = $cache->get('multistepform_' . $this->uniqueid);
 
-        if (
-            !$data
-            || empty($data)
-        ) {
-            $data = [];
+        $labels = [];
+        foreach ($stepdata as $key => $value) {
+            $element = $mform->getElement($key);
+            $type = $element->getType();
+            if ($type == 'hidden') {
+                continue;
+            }
+            $label = $element->getLabel();
+
+            $options = $this->get_element_options($element);
+
+            if (!empty($options) && isset($options[$value])) {
+                $labels[$label] = $options[$value];
+            } else {
+                // Fallback to raw value.
+                $labels[$label] = $value;
+            }
         }
-        $data[$step] = $stepdata;
 
-        $cache->set('multistepform_' . $this->uniqueid, $data);
+        $stepdata->labels = $labels;
+
+        cachestore::set_step($this->uniqueid, $this->recordid, $step, (array)$stepdata);
 
         // Now we need to check if this is the last step.
         if ($step == count($this->steps)) {
@@ -334,16 +343,24 @@ class manager {
                 'uniqueid' => $this->uniqueid,
                 'confirmation' => true,
             ];
+
+            foreach ($this->steps as $stepkey => $step) {
+                foreach ($step['labels'] as $key => $value) {
+                    $formdata['fields'][] = ['label' => $key, 'value' => $value];
+                }
+            }
         } else {
-            $formdata = $this->steps[$step]['formdata'] ?? [];
+            $formdata = $this->steps[$step] ?? [];
             $formclass = $this->steps[$step]['formclass'];
             $formdata['step'] = $step;
-            $formdata['disableprevious'] = $step == 1 ? true : false;
+
+            $formdata['disableprevious'] = ($step == 1 || !$this->can_move_between_steps()) ? true : false;
             $formdata['disablenext'] = $step == count($this->steps) ? true : false;
             $formdata['formclass'] = str_replace('\\', '\\\\', $formclass);
             $formdata['totalsteps'] = count($this->steps);
 
             $formdata['uniqueid'] = $this->uniqueid;
+            $formdata['recordid'] = $this->recordid;
 
             $formdata['formdata'] = json_encode($formdata);
 
@@ -375,5 +392,56 @@ class manager {
             $this->template,
             $data
         );
+    }
+
+    /**
+     * Get value => label options for a MoodleQuickForm element.
+     *
+     * @param mixed $element
+     * @return array|null Array of options (value => label), or null if not applicable.
+     */
+    private function get_element_options($element) {
+
+        $type = $element->getType();
+
+        switch ($type) {
+            case 'select':
+            case 'selectgroups':
+            case 'radio':
+                return $element->getOptions();
+
+            case 'autocomplete':
+                // Use reflection to access protected _options property.
+                $ref = new ReflectionClass($element);
+                if ($ref->hasProperty('_options')) {
+                    $prop = $ref->getProperty('_options');
+                    $prop->setAccessible(true);
+                    $values = $prop->getValue($element);
+                    $options = [];
+                    foreach ($values as $key => $value) {
+                        if (is_array($value)) {
+                            // If the value is an array, use the first element as the label.
+                            $key = reset($value['attr']);
+                            $options[$key] = $value['text'];
+                        }
+                    }
+                    return $options;
+                }
+                return null;
+
+            case 'advcheckbox':
+                // Special case: usually a single checkbox with specific values.
+                $onval  = $element->getAttribute('value');
+                $label  = $element->getLabel();
+                return [$onval => $label];
+
+            case 'checkbox':
+                // Similar to advcheckbox, but more basic.
+                $label = $element->getLabel();
+                return ['1' => $label];
+
+            default:
+                return null;
+        }
     }
 }
