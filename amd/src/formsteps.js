@@ -37,6 +37,8 @@ export const init = (uniqueid, initialstep, formclass, data) => {
         return;
     }
 
+    const formdata = JSON.parse(data);
+
     currentstep = initialstep;
 
     multiformcontainer.querySelectorAll('[data-step]').forEach(button => {
@@ -73,7 +75,7 @@ export const init = (uniqueid, initialstep, formclass, data) => {
 
     // eslint-disable-next-line no-console
     console.log(formclass);
-    initializeForm(container, formclass, JSON.parse(data));
+    initializeForm(container, formclass, formdata);
 };
 
 /**
@@ -104,7 +106,7 @@ function loadStep(uniqueid, step) {
             // eslint-disable-next-line no-console
             console.log('response', response);
 
-            Templates.renderForPromise('local_multistepform/multistepform', JSON.parse(response.data)).then(({html, js}) => {
+            Templates.renderForPromise(response.template, JSON.parse(response.data)).then(({html, js}) => {
 
                 Templates.replaceNode(SELECTORS.MULTISTEPFORMCONTAINER + '[data-uniqueid="' + uniqueid + '"]', html, js);
 

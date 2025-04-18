@@ -62,11 +62,23 @@ class manager {
      */
     protected $recordid;
     /**
+     * Has review of data.
+     *
+     * @var bool $hasreview
+     */
+    protected $hasreview;
+    /**
      * Go back and forward between steps
      *
      * @var bool $canmovesteps
      */
     protected $canmovesteps;
+    /**
+     * The template to render.
+     *
+     * @var string $template
+     */
+    protected $template = 'local_multistepform/multistepform';
 
     /**
      * Constructor for the manager class.
@@ -77,11 +89,12 @@ class manager {
      * @param bool $hasreview
      *
      */
-    public function __construct(string $uniqueid, array $steps, ?int $recordid = null, bool $canmovesteps = false, bool $hasreview = true) {
+    public function __construct(string $uniqueid, array $steps, ?int $recordid = null, bool $canmovesteps = false, bool $hasreview = false) {
         $this->uniqueid = $uniqueid;
         $this->steps = $steps;
         $this->recordid = $recordid;
         $this->canmovesteps = $canmovesteps;
+        $this->hasreview = $hasreview;
 
         $cache = cache::make('local_multistepform', 'multistepform');
         $cachedata = $cache->get('multistepform_' . $this->uniqueid);
@@ -278,6 +291,16 @@ class manager {
     }
 
     /**
+     * Returns the template.
+     *
+     * @return string
+     *
+     */
+    public function get_template(): string {
+        return $this->template;
+    }
+
+    /**
      * Returns the information if the user can move between steps.
      *
      * @return bool
@@ -297,29 +320,40 @@ class manager {
      */
     public function get_step(int $step) {
 
-        if (!isset($this->steps[$step])) {
+        if (
+            $step != -1
+            && !isset($this->steps[$step])
+        ) {
             throw new \moodle_exception("Invalid step: {$step}");
         }
 
+        if ($step == -1 && !empty($this->hasreview)) {
+            $formdata = [
+                'step' => -1,
+                'template' => $this->template,
+                'uniqueid' => $this->uniqueid,
+                'confirmation' => true,
+            ];
+        } else {
+            $formdata = $this->steps[$step]['formdata'] ?? [];
+            $formclass = $this->steps[$step]['formclass'];
+            $formdata['step'] = $step;
+            $formdata['disableprevious'] = $step == 1 ? true : false;
+            $formdata['disablenext'] = $step == count($this->steps) ? true : false;
+            $formdata['formclass'] = str_replace('\\', '\\\\', $formclass);
+            $formdata['totalsteps'] = count($this->steps);
 
-        $formdata = $this->steps[$step]['formdata'] ?? [];
-        $formclass = $this->steps[$step]['formclass'];
-        $formdata['step'] = $step;
-        $formdata['disableprevious'] = $step == 1 ? true : false;
-        $formdata['disablenext'] = $step == count($this->steps) ? true : false;
-        $formdata['formclass'] = str_replace('\\', '\\\\', $formclass);
-        $formdata['totalsteps'] = count($this->steps);
+            $formdata['uniqueid'] = $this->uniqueid;
 
-        $formdata['uniqueid'] = $this->uniqueid;
+            $formdata['formdata'] = json_encode($formdata);
 
-        $formdata['formdata'] = json_encode($formdata);
+            $form = new $formclass(null, null, 'post', '', [], true, $formdata);
+            // Set the form data with the same method that is called when loaded from JS.
+            // It should correctly set the data for the supplied arguments.
+            $form->set_data_for_dynamic_submission();
 
-        $form = new $formclass(null, null, 'post', '', [], true, $formdata);
-        // Set the form data with the same method that is called when loaded from JS.
-        // It should correctly set the data for the supplied arguments.
-        $form->set_data_for_dynamic_submission();
-
-        $formdata['formhtml'] = $form->render();
+            $formdata['formhtml'] = $form->render();
+        }
 
         return $formdata;
     }
@@ -338,7 +372,7 @@ class manager {
         $data = $this->get_step($step);
 
         echo $OUTPUT->render_from_template(
-            'local_multistepform/multistepform',
+            $this->template,
             $data
         );
     }

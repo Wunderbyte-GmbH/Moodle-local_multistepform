@@ -35,57 +35,91 @@
         "totalsteps": 3,
         "formhtml": "<div>Form HTML goes here</div>"
     }
-
 }}
+{{^confirmation}}
+    <div class="multistep-form-wrapper p-4 bg-white rounded shadow-sm" data-step-id="{{step}}" data-total-steps="{{totalsteps}}" data-uniqueid="{{uniqueid}}">
 
-<div class="multistep-form-wrapper p-4 bg-white rounded shadow-sm" data-step-id="{{step}}" data-total-steps="{{totalsteps}}" data-uniqueid="{{uniqueid}}">
-
-    {{! Step Progress Header }}
-    <div class="step-header mb-3">
-        <div class="d-flex justify-content-between align-items-center">
-            <div class="step-text text-muted">
-                {{#str}} step, local_multistepform {{/str}} <span class="current-step fw-bold">{{step}}</span> / {{totalsteps}}
-            </div>
-            <div class="step-progress w-50">
-                <div class="progress">
-                    <div class="progress-bar bg-primary" role="progressbar"
-                        style="width: calc(({{step}} / {{totalsteps}}) * 100%)"
-                        aria-valuenow="{{step}}" aria-valuemin="0" aria-valuemax="{{totalsteps}}">
+        {{! Step Progress Header }}
+        <div class="step-header mb-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="step-text text-muted">
+                    {{#str}} step, local_multistepform {{/str}} <span class="current-step fw-bold">{{step}}</span> / {{totalsteps}}
+                </div>
+                <div class="step-progress w-50">
+                    <div class="progress">
+                        <div class="progress-bar bg-primary" role="progressbar"
+                            style="width: calc(({{step}} / {{totalsteps}}) * 100%)"
+                            aria-valuenow="{{step}}" aria-valuemin="0" aria-valuemax="{{totalsteps}}">
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+
+        {{! AJAX-loaded form content }}
+        <div class="multistep-form-container multistep_form" data-region="multistepformcontainer">
+            {{#formhtml}}
+                {{{formhtml}}}
+            {{/formhtml}}
+            {{^formhtml}}
+                <div class="loading text-center text-muted py-3">
+                    <i class="fa fa-spinner fa-spin me-2"></i>Loading form...
+                </div>
+            {{/formhtml}}
+        </div>
+
+        {{! Navigation buttons }}
+        <div class="multistep-form-nav mt-4 d-flex justify-content-between">
+            <button class="btn btn-primary me-2" {{#disableprevious}} disabled {{/disableprevious}} data-step='previous'>
+                <i class="fa fa-arrow-left ms-1"></i>{{#str}} previous {{/str}}
+            </button>
+
+            <button class="btn btn-success submit-form {{^disablenext}} d-none {{/disablenext}}" data-step='submit'>
+                    <i class="fa fa-check-circle me-1"></i>{{#str}} submit {{/str}}
+                </button>
+            <button class="btn btn-primary me-2" {{#disablenext}} disabled {{/disablenext}} data-step='next'>
+                {{#str}} next {{/str}}<i class="fa fa-arrow-right ms-1"></i>
+            </button>
+        </div>
     </div>
 
-    {{! AJAX-loaded form content }}
-    <div class="multistep-form-container multistep_form" data-region="multistepformcontainer">
-        {{#formhtml}}
-            {{{formhtml}}}
-        {{/formhtml}}
-        {{^formhtml}}
-            <div class="loading text-center text-muted py-3">
-                <i class="fa fa-spinner fa-spin me-2"></i>Loading form...
-            </div>
-        {{/formhtml}}
-    </div>
+    {{#js}}
+        require(['local_multistepform/formsteps'], function(fn) {
+            fn.init('{{uniqueid}}', {{step}}, '{{{formclass}}}', '{{{formdata}}}');
+        });
+    {{/js}}
+{{/confirmation}}
+{{#confirmation}}
+    <div class="multistep-review-page p-4 bg-white rounded shadow-sm" data-uniqueid="{{uniqueid}}">
 
-    {{! Navigation buttons }}
-    <div class="multistep-form-nav mt-4 d-flex justify-content-between">
-        <button class="btn btn-primary me-2" {{#disableprevious}} disabled {{/disableprevious}} data-step='previous'>
-            <i class="fa fa-arrow-left ms-1"></i>{{#str}} previous {{/str}}
-        </button>
+        <h3 class="mb-4">{{#str}} reviewtitle, local_multistepform {{/str}}</h3>
 
-        <button class="btn btn-success submit-form {{^disablenext}} d-none {{/disablenext}}" data-step='submit'>
+        <p class="text-muted mb-4">
+            {{#str}} reviewintro, local_multistepform {{/str}}
+        </p>
+
+        <div class="review-section mb-4">
+            {{#fields}}
+                <div class="review-field mb-3">
+                    <div class="fw-bold">{{label}}</div>
+                    <div class="text-muted border rounded p-2 bg-light">{{value}}</div>
+                </div>
+            {{/fields}}
+
+            {{^fields}}
+                <div class="alert alert-warning">
+                    {{#str}} nofieldsreview, local_multistepform {{/str}}
+                </div>
+            {{/fields}}
+        </div>
+
+        <div class="multistep-form-nav d-flex justify-content-between mt-4">
+            <button class="btn btn-secondary" data-step="previous">
+                <i class="fa fa-arrow-left me-1"></i>{{#str}} previous {{/str}}
+            </button>
+            <button class="btn btn-success final-submit">
                 <i class="fa fa-check-circle me-1"></i>{{#str}} submit {{/str}}
             </button>
-        <button class="btn btn-primary me-2" {{#disablenext}} disabled {{/disablenext}} data-step='next'>
-            {{#str}} next {{/str}}<i class="fa fa-arrow-right ms-1"></i>
-        </button>
+        </div>
     </div>
-</div>
-
-{{#js}}
-    require(['local_multistepform/formsteps'], function(fn) {
-        fn.init('{{uniqueid}}', {{step}}, '{{{formclass}}}', '{{{formdata}}}');
-    });
-{{/js}}
+{{/confirmation}}
