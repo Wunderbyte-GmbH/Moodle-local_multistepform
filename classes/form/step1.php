@@ -50,10 +50,11 @@ class step1 extends dynamic_form {
         $choices = [
             1 => 'Choice 1',
             2 => 'Choice 2',
+            3 => 'Choice 3',
         ];
 
         $options = [
-            'multiple' => false,
+            'multiple' => true,
             'placeholder' => get_string('select'),
             'noresults' => get_string('noresults'),
         ];

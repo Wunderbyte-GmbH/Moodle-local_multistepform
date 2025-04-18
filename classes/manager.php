@@ -238,8 +238,25 @@ class manager {
 
             $options = $this->get_element_options($element);
 
-            if (!empty($options) && isset($options[$value])) {
-                $labels[$label] = $options[$value];
+            if (!empty($options)) {
+                $type = $element->getType();
+                if (
+                    ($type == 'autocomplete' || $type == 'select')
+                    && is_array($value)
+                ) {
+                    // For autocomplete and select, we need to get the value from the options.
+                    // We might have comma separated values.
+                    $multilabels = [];
+                    foreach ($value as $val) {
+                        if (isset($options[$val])) {
+                            $multilabels[] = $options[$val];
+                        }
+                    }
+                    $labels[$label] = implode(', ', $multilabels);
+                } else {
+                    // For other types, we can use the label directly.
+                    $labels[$label] = $options[$value];
+                }
             } else {
                 // Fallback to raw value.
                 $labels[$label] = $value;
