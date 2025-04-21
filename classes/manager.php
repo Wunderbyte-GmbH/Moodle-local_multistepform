@@ -360,7 +360,7 @@ class manager {
      * @return void
      *
      */
-    protected function persist(): void {
+    public function persist(): void {
     }
 
     /**
