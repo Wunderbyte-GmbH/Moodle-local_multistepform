@@ -1,0 +1,64 @@
+.custom-stepper .stepper {
+    display: flex;
+    justify-content: space-between;
+    position: relative;
+    margin: 0 auto;
+    max-width: 700px;
+    width: 100%;
+}
+
+.custom-stepper .step-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    position: relative;
+    z-index: 1;
+}
+
+.custom-stepper .step-item::after {
+    content: '';
+    position: absolute;
+    top: 16px; /* half of circle height */
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background-color: #ccc;
+    z-index: -1;
+}
+
+.custom-stepper .step-item:last-child::after {
+    display: none;
+}
+
+.custom-stepper .circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid #4285f4;
+    color: #4285f4;
+    background-color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    z-index: 2;
+}
+
+.custom-stepper .circle.active {
+    background-color: #4285f4;
+    color: #fff;
+}
+
+.custom-stepper .circle.completed {
+    background-color: #34a853;
+    border-color: #34a853;
+    color: #fff;
+}
+
+.custom-stepper .step-label {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: #4285f4;
+}

@@ -146,6 +146,7 @@ class manager {
         $stepidentifier = $data['stepidentifier'] ?? '';
         $recordid = $data['recordid'] ?? '';
         $formclass = $data['formclass'] ?? '';
+        $label = $data['label'] ?? '';
 
         $mform->addElement('hidden', 'uniqueid', $uniqueid);
         $mform->setType('uniqueid', PARAM_TEXT);
@@ -155,6 +156,8 @@ class manager {
         $mform->setType('step', PARAM_INT);
         $mform->addElement('hidden', 'stepidentifier', $stepidentifier);
         $mform->setType('stepidentifier', PARAM_TEXT);
+        $mform->addElement('hidden', 'label', $label);
+        $mform->setType('label', PARAM_TEXT);
         $mform->addElement('hidden', 'formclass', $formclass);
         $mform->setType('formclass', PARAM_RAW);
     }
@@ -304,8 +307,6 @@ class manager {
      */
     protected function load_data(): void {
         global $DB;
-        $record = $DB->get_record('local_multistepform_data', ['id' => $this->recordid], '*', MUST_EXIST);
-        $this->data = json_decode($record->datajson, true);
     }
 
     /**
@@ -447,6 +448,21 @@ class manager {
             $formdata = $this->steps[$step] ?? [];
             $formclass = $this->steps[$step]['formclass'];
             $formdata['step'] = $step;
+
+            $currentstep = (int) $formdata['step']; // Assuming current step is stored here
+            $formdata['steps'] = array_values(array_map(
+                function ($step, $index) use ($currentstep) {
+                    $stepnumber = (int) ($index); // Fallback to 1-based index
+                    return [
+                        'number' => $stepnumber,
+                        'label' => $this->steps[$index]['label'] ?? 'formlabel',
+                        'iscurrent' => $stepnumber === $currentstep,
+                        'iscompleted' => $stepnumber < $currentstep,
+                    ];
+                },
+                $this->steps,
+                array_keys($this->steps)
+            ));
 
             $formdata['disableprevious'] = ($step == 1 || !$this->can_move_between_steps()) ? true : false;
             $formdata['disablenext'] = $step == count($this->steps) ? true : false;
