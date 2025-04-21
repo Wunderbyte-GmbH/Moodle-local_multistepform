@@ -64,13 +64,7 @@ $data = [
 ];
 
 $uniqueid = 'multistepform_testpage';
-$formmanager = new manager($uniqueid, $data);
+$formmanager = new manager($uniqueid, $data, 0, true, true, '/local/multistepform/testpage.php');
 $formmanager->render();
-
-// $form = new step1(null, null, 'post', '', [], true, ['step' => 1]);
-// // Set the form data with the same method that is called when loaded from JS. It should correctly set the data for the supplied arguments.
-// $form->set_data_for_dynamic_submission();
-// // Render the form in a specific container, there should be nothing else in the same container.
-// echo html_writer::div($form->render(), '', ['id' => 'formcontainer']);
 
 echo $OUTPUT->footer();

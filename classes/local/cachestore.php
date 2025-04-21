@@ -65,6 +65,19 @@ class cachestore {
         $cache = cache::make('local_multistepform', 'multistepform');
         $cache->set('multistepform_' . $uniqueid . '_' . $recordid, $data);
     }
+    /**
+     * Set multiform data to cache.
+     *
+     * @param string $uniqueid
+     * @param int $recordid
+     *
+     * @return void
+     *
+     */
+    public static function purge_cache(string $uniqueid, int $recordid): void {
+        $cache = cache::make('local_multistepform', 'multistepform');
+        $cache->delete('multistepform_' . $uniqueid . '_' . $recordid);
+    }
 
     /**
      * Get step data from cache.

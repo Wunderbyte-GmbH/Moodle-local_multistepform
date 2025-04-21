@@ -84,20 +84,36 @@ class manager {
     protected $template = 'local_multistepform/multistepform';
 
     /**
+     * Returnurl
+     *
+     * @var string $template
+     */
+    protected $returnurl = '/';
+
+    /**
      * Constructor for the manager class.
      *
      * @param array $steps
      * @param int $recordid
      * @param bool $canmovesteps
      * @param bool $hasreview
+     * @param string $returnurl
      *
      */
-    public function __construct(string $uniqueid, array $steps, int $recordid = 0, bool $canmovesteps = true, bool $hasreview = true) {
+    public function __construct(
+        string $uniqueid,
+        array $steps,
+        int $recordid = 0,
+        bool $canmovesteps = true,
+        bool $hasreview = true,
+        string $returnurl = '/'
+    ) {
         $this->uniqueid = $uniqueid;
         $this->steps = $steps;
         $this->recordid = $recordid;
         $this->canmovesteps = $canmovesteps;
         $this->hasreview = $hasreview;
+        $this->returnurl = $returnurl;
 
         $cachedata = cachestore::get_multiform($this->uniqueid, $this->recordid);
 
@@ -107,6 +123,8 @@ class manager {
                 'steps' => $this->steps,
                 'recordid' => $this->recordid,
                 'canmovesteps' => $this->canmovesteps,
+                'hasreview' => $this->hasreview,
+                'returnurl' => $this->returnurl,
             ];
             cachestore::set_multiform($this->uniqueid, $this->recordid, $cachedata);
         } else {
@@ -188,7 +206,14 @@ class manager {
 
         $msdata = cachestore::get_multiform($uniqueid, $recordid);
         if ($msdata) {
-            $manager = new self($uniqueid, $msdata['steps'], $msdata['recordid'], $msdata['canmovesteps']);
+            $manager = new self(
+                $uniqueid,
+                $msdata['steps'],
+                $msdata['recordid'] ?? 0,
+                $msdata['canmovesteps'] ?? true,
+                $msdata['hasreview'] ?? true,
+                $msdata['returnurl'] ?? '/'
+            );
             return $manager;
         } else {
             return null;
@@ -215,6 +240,8 @@ class manager {
 
     /**
      * Save the step data.
+     * This is only set in the non permanent cache.
+     * Persistent saving is done in the persist method.
      *
      * @param int $step
      * @param stdClass $stepdata
@@ -264,14 +291,9 @@ class manager {
         }
 
         $stepdata->labels = $labels;
-
         cachestore::set_step($this->uniqueid, $this->recordid, $step, (array)$stepdata);
 
-        // Now we need to check if this is the last step.
-        if ($step == count($this->steps)) {
-            // If so, we peramanently save the data.
-            $this->persist();
-        }
+        // Persistent saving is done in the persist method.
     }
 
     /**
@@ -284,6 +306,51 @@ class manager {
         global $DB;
         $record = $DB->get_record('local_multistepform_data', ['id' => $this->recordid], '*', MUST_EXIST);
         $this->data = json_decode($record->datajson, true);
+    }
+
+    /**
+     * Set the return URL.
+     *
+     * @param string $url
+     *
+     * @return void
+     *
+     */
+    public function set_returnurl(string $url): void {
+        $cachedata = cachestore::get_multiform($this->uniqueid, $this->recordid);
+        $cachedata['returnurl'] = $url;
+        cachestore::set_multiform($this->uniqueid, $this->recordid, $cachedata);
+        $this->returnurl = $url;
+    }
+
+    /**
+     * Set the template.
+     *
+     * @param string $template
+     *
+     * @return void
+     *
+     */
+    public function set_template(string $template): void {
+        $cachedata = cachestore::get_multiform($this->uniqueid, $this->recordid);
+        $cachedata['template'] = $template;
+        cachestore::set_multiform($this->uniqueid, $this->recordid, $cachedata);
+        $this->returnurl = $template;
+    }
+
+    /**
+     * Set the hasreview.
+     *
+     * @param string $template
+     *
+     * @return void
+     *
+     */
+    public function set_hasreview(bool $hasreview): void {
+        $cachedata = cachestore::get_multiform($this->uniqueid, $this->recordid);
+        $cachedata['hasreview'] = $hasreview;
+        cachestore::set_multiform($this->uniqueid, $this->recordid, $cachedata);
+        $this->returnurl = $hasreview;
     }
 
     /**
@@ -347,24 +414,34 @@ class manager {
     public function get_step(int $step) {
 
         if (
-            $step != -1
+            $step > 0
             && !isset($this->steps[$step])
         ) {
             throw new \moodle_exception("Invalid step: {$step}");
         }
-
-        if ($step == -1 && !empty($this->hasreview)) {
+        if ($step < 0) {
             $formdata = [
-                'step' => -1,
+                'step' => $step,
                 'template' => $this->template,
                 'uniqueid' => $this->uniqueid,
-                'confirmation' => true,
+                'confirmation' => false,
             ];
-
-            foreach ($this->steps as $stepkey => $step) {
-                foreach ($step['labels'] as $key => $value) {
-                    $formdata['fields'][] = ['label' => $key, 'value' => $value];
+            if (!empty($this->hasreview) && $step == -1) {
+                $formdata['confirmation'] = true;
+                foreach ($this->steps as $stepkey => $step) {
+                    foreach ($step['labels'] as $key => $value) {
+                        $formdata['fields'][] = ['label' => $key, 'value' => $value];
+                    }
                 }
+            } else {
+                // This is the moment when we have acutally submitted the Data.
+                // First we persist the saved data.
+                $this->persist();
+
+                // Then we purge the cache.
+                cachestore::purge_cache($this->uniqueid, $this->recordid);
+                // Finally, we return the returnurl.
+                $formdata['returnurl'] = $this->returnurl ?? '';
             }
         } else {
             $formdata = $this->steps[$step] ?? [];

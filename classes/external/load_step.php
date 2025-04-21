@@ -79,6 +79,7 @@ class load_step extends external_api {
             'formclass' => $data['formclass'],
             'data' => json_encode($data),
             'template' => $data['template'] ?? $manager->get_template(),
+            'returnurl' => $data['returnurl'] ?? '',
         ];
     }
 
@@ -95,6 +96,7 @@ class load_step extends external_api {
                 'formclass' => new external_value(PARAM_TEXT, 'Formclass status'),
                 'data' => new external_value(PARAM_RAW, 'Json encoded data'),
                 'template' => new external_value(PARAM_RAW, 'template'),
+                'returnurl' => new external_value(PARAM_URL, 'returnurl', VALUE_OPTIONAL, ''),
             ]
         );
     }

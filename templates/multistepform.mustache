@@ -36,9 +36,8 @@
         "formhtml": "<div>Form HTML goes here</div>"
     }
 }}
-{{^confirmation}}
-    <div class="multistep-form-wrapper p-4 bg-white rounded shadow-sm" data-step-id="{{step}}" data-total-steps="{{totalsteps}}" data-uniqueid="{{uniqueid}}">
-
+<div class="multistep-form-wrapper p-4 bg-white rounded shadow-sm" data-step-id="{{step}}" data-total-steps="{{totalsteps}}" data-uniqueid="{{uniqueid}}">
+    {{^confirmation}}
         {{! Step Progress Header }}
         <div class="step-header mb-3">
             <div class="d-flex justify-content-between align-items-center">
@@ -81,45 +80,44 @@
                 {{#str}} next {{/str}}<i class="fa fa-arrow-right ms-1"></i>
             </button>
         </div>
-    </div>
+    {{/confirmation}}
+    {{#confirmation}}
+        <div class="multistep-review-page p-4 bg-white rounded shadow-sm" data-uniqueid="{{uniqueid}}">
 
-    {{#js}}
-        require(['local_multistepform/formsteps'], function(fn) {
-            fn.init('{{uniqueid}}', {{step}}, '{{{formclass}}}', '{{{formdata}}}');
-        });
-    {{/js}}
-{{/confirmation}}
-{{#confirmation}}
-    <div class="multistep-review-page p-4 bg-white rounded shadow-sm" data-uniqueid="{{uniqueid}}">
+            <h3 class="mb-4">{{#str}} reviewtitle, local_multistepform {{/str}}</h3>
 
-        <h3 class="mb-4">{{#str}} reviewtitle, local_multistepform {{/str}}</h3>
+            <p class="text-muted mb-4">
+                {{#str}} reviewintro, local_multistepform {{/str}}
+            </p>
 
-        <p class="text-muted mb-4">
-            {{#str}} reviewintro, local_multistepform {{/str}}
-        </p>
+            <div class="review-section mb-4">
+                {{#fields}}
+                    <div class="review-field mb-3">
+                        <div class="fw-bold">{{label}}</div>
+                        <div class="text-muted border rounded p-2 bg-light">{{value}}</div>
+                    </div>
+                {{/fields}}
 
-        <div class="review-section mb-4">
-            {{#fields}}
-                <div class="review-field mb-3">
-                    <div class="fw-bold">{{label}}</div>
-                    <div class="text-muted border rounded p-2 bg-light">{{value}}</div>
-                </div>
-            {{/fields}}
+                {{^fields}}
+                    <div class="alert alert-warning">
+                        {{#str}} nofieldsreview, local_multistepform {{/str}}
+                    </div>
+                {{/fields}}
+            </div>
 
-            {{^fields}}
-                <div class="alert alert-warning">
-                    {{#str}} nofieldsreview, local_multistepform {{/str}}
-                </div>
-            {{/fields}}
+            <div class="multistep-form-nav d-flex justify-content-between mt-4">
+                <button class="btn btn-secondary" data-step="previous">
+                    <i class="fa fa-arrow-left me-1"></i>{{#str}} previous {{/str}}
+                </button>
+                <button class="btn btn-success final-submit" data-step='finalsubmit'>
+                    <i class="fa fa-check-circle me-1"></i>{{#str}} submit {{/str}}
+                </button>
+            </div>
         </div>
-
-        <div class="multistep-form-nav d-flex justify-content-between mt-4">
-            <button class="btn btn-secondary" data-step="previous">
-                <i class="fa fa-arrow-left me-1"></i>{{#str}} previous {{/str}}
-            </button>
-            <button class="btn btn-success final-submit">
-                <i class="fa fa-check-circle me-1"></i>{{#str}} submit {{/str}}
-            </button>
-        </div>
-    </div>
-{{/confirmation}}
+    {{/confirmation}}
+</div>
+{{#js}}
+    require(['local_multistepform/formsteps'], function(fn) {
+        fn.init('{{uniqueid}}', {{step}}, '{{{formclass}}}', '{{{formdata}}}');
+    });
+{{/js}}

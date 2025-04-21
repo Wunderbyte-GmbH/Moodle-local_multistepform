@@ -23,21 +23,13 @@ var previousstep = 0;
 
 export const init = (uniqueid, initialstep, formclass, data) => {
 
-    // eslint-disable-next-line no-console
-    console.log('start with step', uniqueid, initialstep, formclass, data);
-
-    // eslint-disable-next-line no-console
-    console.log('selector', SELECTORS.MULTISTEPFORMCONTAINER + '[data-uniqueid="' + uniqueid + '"]');
-
     const multiformcontainer = document.querySelector(
         SELECTORS.MULTISTEPFORMCONTAINER + '[data-uniqueid="' + uniqueid + '"]');
     if (!multiformcontainer) {
-        // eslint-disable-next-line no-console
-        console.log('multiformcontainer not found');
         return;
     }
 
-    const formdata = JSON.parse(data);
+    const formdata = data ? JSON.parse(data) : [];
 
     currentstep = initialstep;
 
@@ -46,35 +38,42 @@ export const init = (uniqueid, initialstep, formclass, data) => {
 
             const direction = e.currentTarget.getAttribute('data-step');
 
-            previousstep = currentstep;
+            previousstep = currentstep > 0 ? currentstep : previousstep;
             switch (direction) {
                 case 'next':
                     currentstep++;
                     break;
                 case 'previous':
-                    currentstep--;
+                    if (currentstep < 0) {
+                        // If we are on the review page, we fake steps in a way that..
+                        // .. we land on the last page and previous page is set to last but one.
+                        currentstep = previousstep;
+                    } else {
+                        currentstep--;
+                    }
                     break;
-                default:
+                case 'submit':
                     currentstep = -1;
                     break;
+                default:
+                    currentstep = -2;
+                    break;
             }
-            // eslint-disable-next-line no-console
-            console.log('next step', currentstep);
 
-            dynamicForm.submitFormAjax().then(() => {
-                // eslint-disable-next-line no-console
-                console.log('form submitted');
-                return true;
-            }).catch(e => {
-                // eslint-disable-next-line no-console
-                console.log(e);
-            });
+            if (!dynamicForm) {
+                loadStep(uniqueid, currentstep);
+            } else {
+                dynamicForm.submitFormAjax().then(() => {
+                    return true;
+                }).catch(e => {
+                    // eslint-disable-next-line no-console
+                    console.log(e);
+                });
+            }
         });
     });
     const container = multiformcontainer.querySelector(SELECTORS.FORMCONTAINER);
 
-    // eslint-disable-next-line no-console
-    console.log(formclass);
     initializeForm(container, formclass, formdata);
 };
 
@@ -90,8 +89,6 @@ function loadStep(uniqueid, step) {
     const multiformcontainer = document.querySelector(
         SELECTORS.MULTISTEPFORMCONTAINER + '[data-uniqueid="' + uniqueid + '"]');
     if (!multiformcontainer) {
-        // eslint-disable-next-line no-console
-        console.log('multiformcontainer not found');
         return;
     }
 
@@ -103,8 +100,10 @@ function loadStep(uniqueid, step) {
         },
         done: (response) => {
 
-            // eslint-disable-next-line no-console
-            console.log('response', response);
+            if (response.returnurl.length > 0) {
+                window.location.href = response.returnurl;
+                return;
+            }
 
             Templates.renderForPromise(response.template, JSON.parse(response.data)).then(({html, js}) => {
 
@@ -134,12 +133,9 @@ function loadStep(uniqueid, step) {
  */
 function initializeForm(container, formclass, data = []) {
 
-    // eslint-disable-next-line no-console
-    console.log('dynamicForm', container, formclass, data);
+    const uniqueid = container?.closest(SELECTORS.MULTISTEPFORMCONTAINER)?.getAttribute('data-uniqueid') ?? '';
 
-    const uniqueid = container.closest(SELECTORS.MULTISTEPFORMCONTAINER).getAttribute('data-uniqueid');
-
-    if (!dynamicForm) {
+    if (!dynamicForm && uniqueid.length > 0) {
         dynamicForm = new DynamicForm(
             container,
             formclass,
@@ -148,24 +144,24 @@ function initializeForm(container, formclass, data = []) {
         dynamicForm.load(data);
     }
 
-    // eslint-disable-next-line no-console
-    console.log('dynamicForm', dynamicForm);
+    if (dynamicForm) {
+        dynamicForm.addEventListener(dynamicForm.events.FORM_SUBMITTED, () => {
+            dynamicForm.container.innerHTML = '';
+            dynamicForm = null;
 
-    dynamicForm.addEventListener(dynamicForm.events.FORM_SUBMITTED, e => {
-        const response = e.detail;
-        // eslint-disable-next-line no-console
-        console.log(response);
-        dynamicForm.container.innerHTML = '';
-        dynamicForm = null;
+            loadStep(uniqueid, currentstep);
+        });
 
-        loadStep(uniqueid, currentstep);
-    });
+        dynamicForm.addEventListener(dynamicForm.events.SERVER_VALIDATION_ERROR, () => {
 
-    dynamicForm.addEventListener(dynamicForm.events.SERVER_VALIDATION_ERROR, e => {
-        const response = e.detail;
-        // eslint-disable-next-line no-console
-        console.log(response);
-        currentstep = previousstep;
-        // loadStep(uniqueid, currentstep);
-    });
+            // When we tried to go to the previous page, even when the validation fails, we load the step.
+            if ((currentstep + 1) == previousstep) {
+                dynamicForm.container.innerHTML = '';
+                dynamicForm = null;
+                loadStep(uniqueid, currentstep);
+            } else {
+                currentstep = previousstep;
+            }
+        });
+    }
 }
