@@ -25,5 +25,6 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_multistepform';
-$plugin->version = 2025041304;
+$plugin->release = '1.0.0';
+$plugin->version = 2025042100;
 $plugin->requires = 2022112800;
