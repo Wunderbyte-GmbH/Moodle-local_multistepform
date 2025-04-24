@@ -284,12 +284,30 @@ class manager {
                     }
                     $labels[$label] = implode(', ', $multilabels);
                 } else {
-                    // For other types, we can use the label directly.
-                    $labels[$label] = $options[$value];
+                    if (isset($options[$value])) {
+                        // For other types, we can use the label directly.
+                        $labels[$label] = $options[$value];
+                    } else {
+                        foreach ($options as $key => $option) {
+                            if (($option['attr']['value'] ?? '') == $value) {
+                                $labels[$label] = $option['text'];
+                                break;
+                            }
+                        }
+                    }
                 }
             } else {
-                // Fallback to raw value.
-                $labels[$label] = $value;
+                // For other types, we can use the label directly.
+                switch ($type) {
+                    case 'duration':
+                        $labels[$label] = $this->format_duration($value);
+                        break;
+                    case 'date_time_selector':
+                        $labels[$label] = userdate($value);
+                        break;
+                    default:
+                        $labels[$label] = $value;
+                }
             }
         }
 
@@ -449,10 +467,10 @@ class manager {
             $formclass = $this->steps[$step]['formclass'];
             $formdata['step'] = $step;
 
-            $currentstep = (int) $formdata['step']; // Assuming current step is stored here
+            $currentstep = (int) $formdata['step']; // Assuming current step is stored here.
             $formdata['steps'] = array_values(array_map(
                 function ($step, $index) use ($currentstep) {
-                    $stepnumber = (int) ($index); // Fallback to 1-based index
+                    $stepnumber = (int) ($index); // Fallback to 1-based index.
                     return [
                         'number' => $stepnumber,
                         'label' => $this->steps[$index]['label'] ?? 'formlabel',
@@ -516,10 +534,7 @@ class manager {
 
         switch ($type) {
             case 'select':
-            case 'selectgroups':
-            case 'radio':
-                return $element->getOptions();
-
+                return $element->_options;
             case 'autocomplete':
                 // Use reflection to access protected _options property.
                 $ref = new ReflectionClass($element);
@@ -553,5 +568,39 @@ class manager {
             default:
                 return null;
         }
+    }
+
+    /**
+     * Format the duration in a human-readable way.
+     *
+     * @param mixed $seconds
+     *
+     * @return [type]
+     *
+     */
+    private function format_duration($seconds) {
+        if ($seconds <= 0) {
+            return '0 seconds';
+        }
+
+        $units = [
+            'week'   => WEEKSECS, // 604800
+            'day'    => DAYSECS, // 86400
+            'hour'   => HOURSECS, // 3600
+            'minute' => MINSECS, // 60
+            'seconds' => 1,
+        ];
+
+        $parts = [];
+
+        foreach ($units as $name => $unit) {
+            $count = floor($seconds / $unit);
+            if ($count > 0) {
+                $parts[] = $count . ' ' . get_string($name);
+                $seconds -= $count * $unit;
+            }
+        }
+
+        return implode(', ', $parts);
     }
 }
