@@ -259,7 +259,11 @@ class manager {
 
         $labels = [];
         foreach ($stepdata as $key => $value) {
+            if (is_array($value)) {
+                continue;
+            }
             $element = $mform->getElement($key);
+
             $type = $element->getType();
             if ($type == 'hidden') {
                 continue;
@@ -389,7 +393,7 @@ class manager {
      *
      */
     public function get_data(): array {
-        return $this->data;
+        return $this->steps;
     }
 
     /**

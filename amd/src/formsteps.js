@@ -146,7 +146,6 @@ function initializeForm(container, formclass, data = []) {
 
     if (dynamicForm) {
         dynamicForm.addEventListener(dynamicForm.events.FORM_SUBMITTED, () => {
-            dynamicForm.container.innerHTML = '';
             dynamicForm = null;
 
             loadStep(uniqueid, currentstep);
@@ -156,7 +155,6 @@ function initializeForm(container, formclass, data = []) {
 
             // When we tried to go to the previous page, even when the validation fails, we load the step.
             if ((currentstep + 1) == previousstep) {
-                dynamicForm.container.innerHTML = '';
                 dynamicForm = null;
                 loadStep(uniqueid, currentstep);
             } else {
