@@ -125,6 +125,7 @@ class manager {
                 'canmovesteps' => $this->canmovesteps,
                 'hasreview' => $this->hasreview,
                 'returnurl' => $this->returnurl,
+                'managerclassname' => get_class($this),
             ];
             cachestore::set_multiform($this->uniqueid, $this->recordid, $cachedata);
         } else {
@@ -208,8 +209,11 @@ class manager {
         global $DB;
 
         $msdata = cachestore::get_multiform($uniqueid, $recordid);
+
+        // We need to instantiate the child class, if there is one.
         if ($msdata) {
-            $manager = new self(
+            $classname = $msdata['managerclassname'] ?? self::class;
+            $manager = new $classname(
                 $uniqueid,
                 $msdata['steps'],
                 $msdata['recordid'] ?? 0,
