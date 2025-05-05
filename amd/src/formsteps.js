@@ -21,7 +21,7 @@ var dynamicForm = null;
 var currentstep = 0;
 var previousstep = 0;
 
-export const init = (uniqueid, initialstep, formclass, data) => {
+export const init = (uniqueid, recordid, initialstep, formclass, data) => {
 
     const multiformcontainer = document.querySelector(
         SELECTORS.MULTISTEPFORMCONTAINER + '[data-uniqueid="' + uniqueid + '"]');
@@ -61,7 +61,7 @@ export const init = (uniqueid, initialstep, formclass, data) => {
             }
 
             if (!dynamicForm) {
-                loadStep(uniqueid, currentstep);
+                loadStep(uniqueid, recordid, currentstep);
             } else {
                 dynamicForm.submitFormAjax().then(() => {
                     return true;
@@ -81,11 +81,12 @@ export const init = (uniqueid, initialstep, formclass, data) => {
  * Load a step of the form via AJAX.
  *
  * @param {mixed} uniqueid
+ * @param {mixed} recordid
  * @param {mixed} step
  *
  * @return void *
  */
-function loadStep(uniqueid, step) {
+function loadStep(uniqueid, recordid, step) {
     const multiformcontainer = document.querySelector(
         SELECTORS.MULTISTEPFORMCONTAINER + '[data-uniqueid="' + uniqueid + '"]');
     if (!multiformcontainer) {
@@ -96,6 +97,7 @@ function loadStep(uniqueid, step) {
         methodname: 'local_multistepform_load_step',
         args: {
             uniqueid: uniqueid,
+            recordid: recordid,
             step: step,
         },
         done: (response) => {
@@ -134,6 +136,7 @@ function loadStep(uniqueid, step) {
 function initializeForm(container, formclass, data = []) {
 
     const uniqueid = container?.closest(SELECTORS.MULTISTEPFORMCONTAINER)?.getAttribute('data-uniqueid') ?? '';
+    const recordid = container?.closest(SELECTORS.MULTISTEPFORMCONTAINER)?.getAttribute('data-recordid') ?? '';
 
     if (!dynamicForm && uniqueid.length > 0) {
         dynamicForm = new DynamicForm(
@@ -148,7 +151,7 @@ function initializeForm(container, formclass, data = []) {
         dynamicForm.addEventListener(dynamicForm.events.FORM_SUBMITTED, () => {
             dynamicForm = null;
 
-            loadStep(uniqueid, currentstep);
+            loadStep(uniqueid, recordid, currentstep);
         });
 
         dynamicForm.addEventListener(dynamicForm.events.SERVER_VALIDATION_ERROR, () => {
@@ -156,7 +159,7 @@ function initializeForm(container, formclass, data = []) {
             // When we tried to go to the previous page, even when the validation fails, we load the step.
             if ((currentstep + 1) == previousstep) {
                 dynamicForm = null;
-                loadStep(uniqueid, currentstep);
+                loadStep(uniqueid, recordid, currentstep);
             } else {
                 currentstep = previousstep;
             }

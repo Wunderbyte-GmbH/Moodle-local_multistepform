@@ -41,11 +41,12 @@
             "key2": "value2"
         },
         "uniqueid": "unique-id",
+        "recordid": 1,
         "disableprevious": false,
         "disablenext": false
     }
 }}
-<div class="multistep-form-wrapper card border-0 shadow-lg p-4" data-step-id="{{step}}" data-total-steps="{{totalsteps}}" data-uniqueid="{{uniqueid}}">
+<div class="multistep-form-wrapper card border-0 shadow-lg p-4" data-step-id="{{step}}" data-total-steps="{{totalsteps}}" data-uniqueid="{{uniqueid}}" data-recordid="{{recordid}}">
     {{^confirmation}}
         <div class="custom-stepper mb-4 text-center">
             <div class="stepper d-flex justify-content-between align-items-center position-relative">
@@ -90,7 +91,7 @@
     {{/confirmation}}
 
     {{#confirmation}}
-        <div class="multistep-review-page" data-uniqueid="{{uniqueid}}">
+        <div class="multistep-review-page" data-uniqueid="{{uniqueid}}" data-recordid="{{recordid}}">
             <div class="bg-light p-4 rounded shadow-sm">
                 <h3 class="mb-3">{{#str}} reviewtitle, local_multistepform {{/str}}</h3>
                 <p class="text-muted mb-4">
@@ -126,6 +127,6 @@
 </div>
 {{#js}}
     require(['local_multistepform/formsteps'], function(fn) {
-        fn.init('{{uniqueid}}', {{step}}, '{{{formclass}}}', '{{{formdata}}}');
+        fn.init('{{uniqueid}}', {{recordid}}, {{step}}, '{{{formclass}}}', '{{{formdata}}}');
     });
 {{/js}}

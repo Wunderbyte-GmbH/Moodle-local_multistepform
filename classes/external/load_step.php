@@ -44,6 +44,7 @@ class load_step extends external_api {
         return new external_function_parameters(
             [
                 'uniqueid' => new external_value(PARAM_RAW, 'uniqueid'),
+                'recordid' => new external_value(PARAM_INT, 'recordid'),
                 'step' => new external_value(PARAM_INT, 'step'),
             ]
         );
@@ -58,19 +59,20 @@ class load_step extends external_api {
      * @return [type]
      *
      */
-    public static function execute($uniqueid, $step) {
-        global $DB, $USER, $PAGE;
+    public static function execute($uniqueid, $recordid, $step) {
+        global $DB, $PAGE;
 
         // Validate parameters.
         $params = self::validate_parameters(self::execute_parameters(), [
             'uniqueid' => $uniqueid,
+            'recordid' => $recordid,
             'step' => $step,
         ]);
 
         $context = context_system::instance();
         $PAGE->set_context($context);
 
-        $manager = manager::return_class_by_uniqueid($uniqueid);
+        $manager = manager::return_class_by_uniqueid($uniqueid, $recordid);
 
         $data = $manager->get_step($step);
 

@@ -211,20 +211,17 @@ class manager {
         $msdata = cachestore::get_multiform($uniqueid, $recordid);
 
         // We need to instantiate the child class, if there is one.
-        if ($msdata) {
-            $classname = $msdata['managerclassname'] ?? self::class;
-            $manager = new $classname(
-                $uniqueid,
-                $msdata['steps'],
-                $msdata['recordid'] ?? 0,
-                $msdata['canmovesteps'] ?? true,
-                $msdata['hasreview'] ?? true,
-                $msdata['returnurl'] ?? '/'
-            );
-            return $manager;
-        } else {
-            return null;
-        };
+        $classname = $msdata['managerclassname'] ?? self::class;
+        $manager = new $classname(
+            $uniqueid,
+            $msdata['steps'] ?? [],
+            $msdata['recordid'] ?? 0,
+            $msdata['canmovesteps'] ?? true,
+            $msdata['hasreview'] ?? true,
+            $msdata['returnurl'] ?? '/'
+        );
+        return $manager;
+
     }
 
     /**
@@ -449,6 +446,7 @@ class manager {
         if ($step < 0) {
             $formdata = [
                 'step' => $step,
+                'recordid' => $this->get_recordid(),
                 'template' => $this->template,
                 'uniqueid' => $this->uniqueid,
                 'confirmation' => false,
@@ -471,6 +469,17 @@ class manager {
                 $formdata['returnurl'] = $this->returnurl ?? '';
             }
         } else {
+
+            // If we are on the first step and the data is not yet loaded, we call the load_data method.
+            // We want the instantiated class here.
+            if (
+                $step == 1
+                && !empty($this->steps[$step]['recordid'])
+            ) {
+                // At this point, we have the instantiated class, we can now load the data.
+                $this->load_data();
+            }
+
             $formdata = $this->steps[$step] ?? [];
             $formclass = $this->steps[$step]['formclass'];
             $formdata['step'] = $step;
