@@ -115,7 +115,8 @@ class manager {
         $this->hasreview = $hasreview;
         $this->returnurl = $returnurl;
 
-        $cachedata = cachestore::get_multiform($this->uniqueid, $this->recordid);
+        $cachestore = new cachestore();
+        $cachedata = $cachestore->get_multiform($this->uniqueid, $this->recordid);
 
         if (empty($cachedata)) {
             $cachedata = [
@@ -127,7 +128,7 @@ class manager {
                 'returnurl' => $this->returnurl,
                 'managerclassname' => get_class($this),
             ];
-            cachestore::set_multiform($this->uniqueid, $this->recordid, $cachedata);
+            $cachestore->set_multiform($this->uniqueid, $this->recordid, $cachedata);
         } else {
             // We might have already stored values for the steps.
             $this->steps = $cachedata['steps'];
@@ -140,7 +141,7 @@ class manager {
      * @return void
      *
      */
-    public static function definition(MoodleQuickForm $mform, array $data): void {
+    public function definition(MoodleQuickForm $mform, array $data): void {
 
         $uniqueid = $data['uniqueid'];
         $step = $data['step'];
@@ -171,7 +172,7 @@ class manager {
      * @return void
      *
      */
-    public static function process_dynamic_submission($data, ?MoodleQuickForm $mform = null): void {
+    public function process_dynamic_submission($data, ?MoodleQuickForm $mform = null): void {
         global $DB;
 
         $uniqueid = $data->uniqueid;
@@ -208,10 +209,11 @@ class manager {
     public static function return_class_by_uniqueid(string $uniqueid, int $recordid = 0): ?self {
         global $DB;
 
-        $msdata = cachestore::get_multiform($uniqueid, $recordid);
+        $cachestore = new cachestore();
+        $msdata = $cachestore->get_multiform($uniqueid, $recordid);
 
         // We need to instantiate the child class, if there is one.
-        $classname = $msdata['managerclassname'] ?? self::class;
+        $classname = $msdata['managerclassname'] ?? get_class($this);
         $manager = new $classname(
             $uniqueid,
             $msdata['steps'] ?? [],
@@ -221,7 +223,6 @@ class manager {
             $msdata['returnurl'] ?? '/'
         );
         return $manager;
-
     }
 
     /**
@@ -317,7 +318,8 @@ class manager {
         }
 
         $stepdata->labels = $labels;
-        cachestore::set_step($this->uniqueid, $this->recordid, $step, (array)$stepdata);
+        $cachestore = new cachestore();
+        $cachestore->set_step($this->uniqueid, $this->recordid, $step, (array)$stepdata);
 
         // Persistent saving is done in the persist method.
     }
@@ -341,9 +343,10 @@ class manager {
      *
      */
     public function set_returnurl(string $url): void {
-        $cachedata = cachestore::get_multiform($this->uniqueid, $this->recordid);
+        $cachestore = new cachestore();
+        $cachedata = $cachestore->get_multiform($this->uniqueid, $this->recordid);
         $cachedata['returnurl'] = $url;
-        cachestore::set_multiform($this->uniqueid, $this->recordid, $cachedata);
+        $cachestore->set_multiform($this->uniqueid, $this->recordid, $cachedata);
         $this->returnurl = $url;
     }
 
@@ -356,9 +359,10 @@ class manager {
      *
      */
     public function set_template(string $template): void {
-        $cachedata = cachestore::get_multiform($this->uniqueid, $this->recordid);
+        $cachestore = new cachestore();
+        $cachedata = $cachestore->get_multiform($this->uniqueid, $this->recordid);
         $cachedata['template'] = $template;
-        cachestore::set_multiform($this->uniqueid, $this->recordid, $cachedata);
+        $cachestore->set_multiform($this->uniqueid, $this->recordid, $cachedata);
         $this->returnurl = $template;
     }
 
@@ -371,9 +375,10 @@ class manager {
      *
      */
     public function set_hasreview(bool $hasreview): void {
-        $cachedata = cachestore::get_multiform($this->uniqueid, $this->recordid);
+        $cachestore = new cachestore();
+        $cachedata = $cachestore->get_multiform($this->uniqueid, $this->recordid);
         $cachedata['hasreview'] = $hasreview;
-        cachestore::set_multiform($this->uniqueid, $this->recordid, $cachedata);
+        $cachestore->set_multiform($this->uniqueid, $this->recordid, $cachedata);
         $this->returnurl = $hasreview;
     }
 
@@ -464,12 +469,12 @@ class manager {
                 $this->persist();
 
                 // Then we purge the cache.
-                cachestore::purge_cache($this->uniqueid, $this->recordid);
+                $cachestore = new cachestore();
+                $cachestore->purge_cache($this->uniqueid, $this->recordid);
                 // Finally, we return the returnurl.
                 $formdata['returnurl'] = $this->returnurl ?? '';
             }
         } else {
-
             // If we are on the first step and the data is not yet loaded, we call the load_data method.
             // We want the instantiated class here.
             if (

@@ -41,7 +41,8 @@ class step1 extends dynamic_form {
         $mform = $this->_form;
         $formdata = $this->_ajaxformdata ?? $this->_customdata ?? [];
 
-        manager::definition($mform, $formdata);
+        $manager = new manager();
+        $manager->definition($mform, $formdata);
     }
 
     /**
@@ -52,7 +53,8 @@ class step1 extends dynamic_form {
      */
     public function process_dynamic_submission(): void {
         $data = $this->get_data();
-        manager::process_dynamic_submission($data);
+        $manager = new manager();
+        $manager->process_dynamic_submission($data);
     }
 
     /**

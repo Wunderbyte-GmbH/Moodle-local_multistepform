@@ -40,7 +40,13 @@ class step2 extends dynamic_form {
     protected function definition(): void {
         $mform = $this->_form;
         $formdata = $this->_ajaxformdata ?? $this->_customdata ?? [];
-        manager::definition($mform, $formdata);
+
+        $uniqueid = $formdata['uniqueid'] ?? 0;
+        $recordid = $formdata['recordid'] ?? 0;
+
+        $manager = manager::return_class_by_uniqueid($uniqueid, $recordid);
+
+        $manager->definition($mform, $formdata);
 
         // You can add any form elements here below.
         $mform->addElement('text', 'lastname', get_string('lastname'));
@@ -57,7 +63,12 @@ class step2 extends dynamic_form {
     public function process_dynamic_submission(): void {
         $data = $this->get_data();
         $mform = $this->_form;
-        manager::process_dynamic_submission($data, $mform);
+        $uniqueid = $data->uniqueid ?? 0;
+        $recordid = $data->recordid ?? 0;
+
+        $manager = manager::return_class_by_uniqueid($uniqueid, $recordid);
+
+        $manager->process_dynamic_submission($data, $mform);
 
         // You should not add anything here.
         // Do the saving of your data in the persist function of the manager class.

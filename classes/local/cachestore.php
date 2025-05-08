@@ -45,7 +45,7 @@ class cachestore {
      * @return array
      *
      */
-    public static function get_multiform(string $uniqueid, int $recordid): array {
+    public function get_multiform(string $uniqueid, int $recordid): array {
         $cache = cache::make('local_multistepform', 'multistepform');
         return $cache->get('multistepform_' . $uniqueid . '_' . $recordid) ?: [];
     }
@@ -61,7 +61,7 @@ class cachestore {
      * @return void
      *
      */
-    public static function set_multiform(string $uniqueid, int $recordid, array $data): void {
+    public function set_multiform(string $uniqueid, int $recordid, array $data): void {
         $cache = cache::make('local_multistepform', 'multistepform');
         $cache->set('multistepform_' . $uniqueid . '_' . $recordid, $data);
     }
@@ -74,7 +74,7 @@ class cachestore {
      * @return void
      *
      */
-    public static function purge_cache(string $uniqueid, int $recordid): void {
+    public function purge_cache(string $uniqueid, int $recordid): void {
         $cache = cache::make('local_multistepform', 'multistepform');
         $cache->delete('multistepform_' . $uniqueid . '_' . $recordid);
     }
@@ -89,7 +89,7 @@ class cachestore {
      * @return array
      *
      */
-    public static function get_step(string $uniqueid, int $recordid, int $step): array {
+    public function get_step(string $uniqueid, int $recordid, int $step): array {
         $cache = cache::make('local_multistepform', 'multistepform');
         $cache = $cache->get('multistepform_' . $uniqueid . '_' . $recordid);
         if (isset($cache['steps'][$step])) {
@@ -109,9 +109,9 @@ class cachestore {
      * @return void
      *
      */
-    public static function set_step(string $uniqueid, int $recordid, int $step, array $data): void {
-        $cached = self::get_multiform($uniqueid, $recordid);
+    public function set_step(string $uniqueid, int $recordid, int $step, array $data): void {
+        $cached = $this->get_multiform($uniqueid, $recordid);
         $cached['steps'][$step] = $data;
-        self::set_multiform($uniqueid, $recordid, $cached);
+        $this->set_multiform($uniqueid, $recordid, $cached);
     }
 }
