@@ -60,7 +60,7 @@ class load_step extends external_api {
      *
      */
     public static function execute($uniqueid, $recordid, $step) {
-        global $DB, $PAGE;
+        global $DB, $PAGE, $OUTPUT;
 
         // Validate parameters.
         $params = self::validate_parameters(self::execute_parameters(), [
@@ -74,7 +74,11 @@ class load_step extends external_api {
 
         $manager = manager::return_class_by_uniqueid($uniqueid, $recordid);
 
+        // We need to get the js which is generated here to initialize the form.
+        $OUTPUT->header();
+        $PAGE->start_collecting_javascript_requirements();
         $data = $manager->get_step($step);
+        $jsfooter = $PAGE->requires->get_end_code();
 
         return [
             'step' => $data['step'],
@@ -82,6 +86,7 @@ class load_step extends external_api {
             'data' => json_encode($data),
             'template' => $data['template'] ?? $manager->get_template(),
             'returnurl' => $data['returnurl'] ?? '',
+            'js' => $jsfooter,
         ];
     }
 
@@ -99,6 +104,7 @@ class load_step extends external_api {
                 'data' => new external_value(PARAM_RAW, 'Json encoded data'),
                 'template' => new external_value(PARAM_RAW, 'template'),
                 'returnurl' => new external_value(PARAM_URL, 'returnurl', VALUE_OPTIONAL, ''),
+                'js' => new external_value(PARAM_RAW, 'js'),
             ]
         );
     }

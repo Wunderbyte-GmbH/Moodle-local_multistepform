@@ -506,13 +506,17 @@ class manager {
 
             $formdata['disableprevious'] = ($step == 1 || !$this->can_move_between_steps()) ? true : false;
             $formdata['disablenext'] = $step == count($this->steps) ? true : false;
-            $formdata['formclass'] = str_replace('\\', '\\\\', $formclass);
             $formdata['totalsteps'] = count($this->steps);
 
             $formdata['uniqueid'] = $this->uniqueid;
             $formdata['recordid'] = $this->recordid;
 
             $formdata['formdata'] = json_encode($formdata);
+
+            // Formclass here musst be without the double backslash.
+            $formclass = str_replace('\\\\', '\\', $formclass);
+            // Formclass here musst be with the double backslash.
+            $formdata['formclass'] = str_replace('\\', '\\\\', $formclass);
 
             $form = new $formclass(null, null, 'post', '', [], true, $formdata);
             // Set the form data with the same method that is called when loaded from JS.

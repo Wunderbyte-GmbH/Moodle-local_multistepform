@@ -108,7 +108,8 @@ function loadStep(uniqueid, recordid, step) {
             }
 
             Templates.renderForPromise(response.template, JSON.parse(response.data)).then(({html, js}) => {
-
+                // We add the footer js to the html.
+                html = html + response.js;
                 Templates.replaceNode(SELECTORS.MULTISTEPFORMCONTAINER + '[data-uniqueid="' + uniqueid + '"]', html, js);
 
                 return true;
@@ -134,35 +135,62 @@ function loadStep(uniqueid, recordid, step) {
  *
  */
 function initializeForm(container, formclass, data = []) {
+    container.parentElement.addEventListener('click', e => {
+
+        const target = e.target;
+        if (
+            target.tagName === 'INPUT' &&
+            target.type === 'submit' &&
+            target.name.startsWith('target_add')
+        ) {
+            // Wait for DOM to update after Moodle repeats the form elements
+            window.requestAnimationFrame(() => {
+                setTimeout(() => {
+                    require(['core/form-autocomplete'], (AutoComplete) => {
+                        document.querySelectorAll('div[data-fieldtype="autocomplete"]').forEach((select) => {
+                            const alreadyEnhanced = select.querySelector('.form-autocomplete-downarrow');
+
+                            if (!alreadyEnhanced && AutoComplete.enhance) {
+                                AutoComplete.enhance(select.querySelector('select'));
+                            }
+                        });
+                    });
+                }, 1000); // A small delay to ensure DOM is updated
+            });
+        }
+
+    });
 
     const uniqueid = container?.closest(SELECTORS.MULTISTEPFORMCONTAINER)?.getAttribute('data-uniqueid') ?? '';
     const recordid = container?.closest(SELECTORS.MULTISTEPFORMCONTAINER)?.getAttribute('data-recordid') ?? '';
 
     if (!dynamicForm && uniqueid.length > 0) {
-        dynamicForm = new DynamicForm(
-            container,
-            formclass,
-            data,
-        );
-        dynamicForm.load(data);
-    }
 
-    if (dynamicForm) {
-        dynamicForm.addEventListener(dynamicForm.events.FORM_SUBMITTED, () => {
-            dynamicForm = null;
+        setTimeout(() => {
+            dynamicForm = new DynamicForm(
+                container,
+                formclass,
+                data,
+            );
 
-            loadStep(uniqueid, recordid, currentstep);
-        });
+            if (dynamicForm) {
+                dynamicForm.addEventListener(dynamicForm.events.FORM_SUBMITTED, () => {
+                    dynamicForm = null;
 
-        dynamicForm.addEventListener(dynamicForm.events.SERVER_VALIDATION_ERROR, () => {
+                    loadStep(uniqueid, recordid, currentstep);
+                });
 
-            // When we tried to go to the previous page, even when the validation fails, we load the step.
-            if ((currentstep + 1) == previousstep) {
-                dynamicForm = null;
-                loadStep(uniqueid, recordid, currentstep);
-            } else {
-                currentstep = previousstep;
+                dynamicForm.addEventListener(dynamicForm.events.SERVER_VALIDATION_ERROR, () => {
+
+                    // When we tried to go to the previous page, even when the validation fails, we load the step.
+                    if ((currentstep + 1) == previousstep) {
+                        dynamicForm = null;
+                        loadStep(uniqueid, recordid, currentstep);
+                    } else {
+                        currentstep = previousstep;
+                    }
+                });
             }
-        });
+        }, 100);
     }
 }
