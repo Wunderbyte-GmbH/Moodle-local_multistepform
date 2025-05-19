@@ -109,4 +109,14 @@ class step1 extends dynamic_form {
     protected function check_access_for_dynamic_submission(): void {
         require_login();
     }
+
+    /**
+     * Each step can provide a specific way how to extract and return the data.
+     *
+     * @return array
+     *
+     */
+    public function get_data_to_persist(array $step): array {
+        return $step;
+    }
 }

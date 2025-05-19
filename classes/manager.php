@@ -101,8 +101,8 @@ class manager {
      *
      */
     public function __construct(
-        string $uniqueid,
-        array $steps,
+        string $uniqueid = '',
+        array $steps = [],
         int $recordid = 0,
         bool $canmovesteps = true,
         bool $hasreview = true,
@@ -213,7 +213,7 @@ class manager {
         $msdata = $cachestore->get_multiform($uniqueid, $recordid);
 
         // We need to instantiate the child class, if there is one.
-        $classname = $msdata['managerclassname'] ?? get_class($this);
+        $classname = $msdata['managerclassname'] ?? self::class;
         $manager = new $classname(
             $uniqueid,
             $msdata['steps'] ?? [],
