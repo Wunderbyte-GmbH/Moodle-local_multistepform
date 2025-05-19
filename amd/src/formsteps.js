@@ -23,6 +23,9 @@ var previousstep = 0;
 
 export const init = (uniqueid, recordid, initialstep, formclass, data) => {
 
+    // eslint-disable-next-line no-console
+    console.log(data);
+
     const multiformcontainer = document.querySelector(
         SELECTORS.MULTISTEPFORMCONTAINER + '[data-uniqueid="' + uniqueid + '"]');
     if (!multiformcontainer) {
@@ -135,62 +138,79 @@ function loadStep(uniqueid, recordid, step) {
  *
  */
 function initializeForm(container, formclass, data = []) {
-    container.parentElement.addEventListener('click', e => {
 
-        const target = e.target;
-        if (
-            target.tagName === 'INPUT' &&
-            target.type === 'submit' &&
-            target.name.startsWith('target_add')
-        ) {
-            // Wait for DOM to update after Moodle repeats the form elements
-            window.requestAnimationFrame(() => {
-                setTimeout(() => {
-                    require(['core/form-autocomplete'], (AutoComplete) => {
-                        document.querySelectorAll('div[data-fieldtype="autocomplete"]').forEach((select) => {
-                            const alreadyEnhanced = select.querySelector('.form-autocomplete-downarrow');
+    if (container) {
+            container.parentElement.addEventListener('click', e => {
 
-                            if (!alreadyEnhanced && AutoComplete.enhance) {
-                                AutoComplete.enhance(select.querySelector('select'));
-                            }
-                        });
-                    });
-                }, 1000); // A small delay to ensure DOM is updated
-            });
-        }
+            const target = e.target;
+            if (
+                target.tagName === 'INPUT' &&
+                target.type === 'submit' &&
+                target.name.startsWith('target_add')
+            ) {
+               loadAutocompleteElements();
+            }
 
-    });
+        });
+    }
 
     const uniqueid = container?.closest(SELECTORS.MULTISTEPFORMCONTAINER)?.getAttribute('data-uniqueid') ?? '';
     const recordid = container?.closest(SELECTORS.MULTISTEPFORMCONTAINER)?.getAttribute('data-recordid') ?? '';
 
     if (!dynamicForm && uniqueid.length > 0) {
 
-        setTimeout(() => {
-            dynamicForm = new DynamicForm(
-                container,
-                formclass,
-                data,
-            );
+        dynamicForm = new DynamicForm(
+            container,
+            formclass,
+            data,
+        );
 
-            if (dynamicForm) {
-                dynamicForm.addEventListener(dynamicForm.events.FORM_SUBMITTED, () => {
+        if (dynamicForm) {
+            dynamicForm.addEventListener(dynamicForm.events.FORM_SUBMITTED, () => {
+                dynamicForm = null;
+
+                loadStep(uniqueid, recordid, currentstep);
+            });
+
+            dynamicForm.addEventListener(dynamicForm.events.SERVER_VALIDATION_ERROR, () => {
+
+                // When we tried to go to the previous page, even when the validation fails, we load the step.
+                if ((currentstep + 1) == previousstep) {
                     dynamicForm = null;
-
                     loadStep(uniqueid, recordid, currentstep);
-                });
+                } else {
+                    currentstep = previousstep;
+                }
+            });
+        }
 
-                dynamicForm.addEventListener(dynamicForm.events.SERVER_VALIDATION_ERROR, () => {
+        loadAutocompleteElements();
+    }
+}
 
-                    // When we tried to go to the previous page, even when the validation fails, we load the step.
-                    if ((currentstep + 1) == previousstep) {
-                        dynamicForm = null;
-                        loadStep(uniqueid, recordid, currentstep);
-                    } else {
-                        currentstep = previousstep;
+/**
+ * Make sure all autocomplete elements are loaded.
+ *
+ * @return void
+ *
+ */
+function loadAutocompleteElements() {
+// Wait for DOM to update after Moodle repeats the form elements
+    window.requestAnimationFrame(() => {
+        // eslint-disable-next-line no-console
+        console.log('make sure all autocomplete elements are here');
+        setTimeout(() => {
+            // eslint-disable-next-line no-console
+            console.log('load them now');
+            require(['core/form-autocomplete'], (AutoComplete) => {
+                document.querySelectorAll('div[data-fieldtype="autocomplete"]').forEach((select) => {
+                    const alreadyEnhanced = select.querySelector('.form-autocomplete-downarrow');
+
+                    if (!alreadyEnhanced && AutoComplete.enhance) {
+                        AutoComplete.enhance(select.querySelector('select'));
                     }
                 });
-            }
-        }, 100);
-    }
+            });
+        }, 400); // A small delay to ensure DOM is updated
+    });
 }
