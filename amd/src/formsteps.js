@@ -211,6 +211,33 @@ function loadAutocompleteElements() {
                     }
                 });
             });
-        }, 400); // A small delay to ensure DOM is updated
+            const packageSelect = document.querySelector('#id_message_package');
+            if (packageSelect) {
+                packageSelect.addEventListener('change', (e) => {
+                const selectedPackageId = e.target.value;
+                e.stopImmediatePropagation();
+
+                // Deselect all selected messageids.
+                const messageSelect = document.querySelector('#id_messageids');
+                if (messageSelect) {
+                    Array.from(messageSelect.options).forEach(option => {
+                        option.selected = false;
+                    });
+                }
+
+                if (dynamicForm) {
+                    dynamicForm.submitFormAjax({
+                        packageid: selectedPackageId
+                    }).then(() => {
+                        // The form will be reloaded by SERVER_VALIDATION_ERROR below.
+                        return;
+                    }).catch(err => {
+                        // eslint-disable-next-line no-console
+                        console.error(err);
+                    });
+                }
+                });
+            }
+        }, 400);
     });
 }

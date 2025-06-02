@@ -24,13 +24,10 @@
 
 namespace local_multistepform;
 
-use cache;
 use local_multistepform\local\cachestore;
-use moodleform;
 use MoodleQuickForm;
 use ReflectionClass;
 use stdClass;
-use Throwable;
 
 /**
  * Submit data to the server.
@@ -441,7 +438,6 @@ class manager {
      *
      */
     public function get_step(int $step) {
-
         if (
             $step > 0
             && !isset($this->steps[$step])
