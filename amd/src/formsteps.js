@@ -146,11 +146,13 @@ function initializeForm(container, formclass, data = []) {
             if (
                 target.tagName === 'INPUT' &&
                 target.type === 'submit' &&
-                target.name.startsWith('target_add')
+                (
+                    target.name.startsWith('target_add') ||
+                    target.name.startsWith('deleteelement')
+                )
             ) {
                loadAutocompleteElements();
             }
-
         });
     }
 
