@@ -253,72 +253,109 @@ class manager {
      *
      */
     public function save_step_data(int $step, stdClass $stepdata, ?MoodleQuickForm $mform): void {
-
         // First, we save each step in the cache.
-
         $labels = [];
+        $flattenrepeatelement = [];
         foreach ($stepdata as $key => $value) {
             if (is_array($value)) {
+                foreach ($value as $repeatkey => $repeatvalue) {
+                    $repeatelementkey = $key . '[' . $repeatkey . ']';
+                    $element = $mform->getElement($repeatelementkey);
+                    if ($element->getType() == 'HTML_QuickForm_Error') {
+                        $element = $mform->getElement($key);
+                    }
+                    $labels = $this->set_label_values($element, $value);
+
+                    $label = $element->getLabel();
+                    $options = $this->get_element_options($element);
+                    foreach ($options as $option) {
+                        if (
+                            is_array($option) &&
+                            $option['attr']['value'] == $repeatvalue
+                        ) {
+                            $flattenrepeatelement[$stepdata->label . '_' . $repeatkey][] =
+                                $label . ': ' . $option['text'];
+                            continue;
+                        } else if ($options[$repeatvalue]) {
+                            $flattenrepeatelement[$stepdata->label . '_' . $repeatkey][] =
+                                $label . ': ' . $options[$repeatvalue];
+                            break;
+                        }
+                    }
+                }
                 continue;
             }
             $element = $mform->getElement($key);
-
-            $type = $element->getType();
-            if ($type == 'hidden') {
-                continue;
-            }
-            $label = $element->getLabel();
-
-            $options = $this->get_element_options($element);
-
-            if (!empty($options)) {
-                $type = $element->getType();
-                if (
-                    ($type == 'autocomplete' || $type == 'select')
-                    && is_array($value)
-                ) {
-                    // For autocomplete and select, we need to get the value from the options.
-                    // We might have comma separated values.
-                    $multilabels = [];
-                    foreach ($value as $val) {
-                        if (isset($options[$val])) {
-                            $multilabels[] = $options[$val];
-                        }
-                    }
-                    $labels[$label] = implode(', ', $multilabels);
-                } else {
-                    if (isset($options[$value])) {
-                        // For other types, we can use the label directly.
-                        $labels[$label] = $options[$value];
-                    } else {
-                        foreach ($options as $key => $option) {
-                            if (($option['attr']['value'] ?? '') == $value) {
-                                $labels[$label] = $option['text'];
-                                break;
-                            }
-                        }
-                    }
-                }
-            } else {
-                // For other types, we can use the label directly.
-                switch ($type) {
-                    case 'duration':
-                        $labels[$label] = $this->format_duration($value);
-                        break;
-                    case 'date_time_selector':
-                        $labels[$label] = userdate($value);
-                        break;
-                    default:
-                        $labels[$label] = $value;
-                }
+            $labels = $this->set_label_values($element, $value);
+        }
+        if (!empty($flattenrepeatelement)) {
+            foreach ($flattenrepeatelement as $flattenedkey => $flattenedvalue) {
+                $labels[$flattenedkey] = implode(', ', $flattenedvalue);
             }
         }
 
         $stepdata->labels = $labels;
         $cachestore = new cachestore();
         $cachestore->set_step($this->uniqueid, $this->recordid, $step, (array)$stepdata);
-
         // Persistent saving is done in the persist method.
+    }
+
+    /**
+     * Load the data from the database.
+     * @return array
+     */
+    protected function set_label_values($element, $value): array {
+        $labels = [];
+        $options = $this->get_element_options($element);
+        $type = $element->getType();
+        if (
+            $type == 'hidden' ||
+            $type == 'HTML_QuickForm_Error'
+        ) {
+            return [];
+        }
+        $label = $element->getLabel();
+        if (!empty($options)) {
+            $type = $element->getType();
+            if (
+                ($type == 'autocomplete' || $type == 'select')
+                && is_array($value)
+            ) {
+                // For autocomplete and select, we need to get the value from the options.
+                $multilabels = [];
+                foreach ($value as $val) {
+                    if (isset($options[$val])) {
+                        $multilabels[] = $options[$val];
+                    }
+                }
+                $labels[$label] = implode(', ', $multilabels);
+            } else {
+                if (isset($options[$value])) {
+                    // For other types, we can use the label directly.
+                    $labels[$label] = $options[$value];
+                } else {
+                    foreach ($options as $key => $option) {
+                        if (($option['attr']['value'] ?? '') == $value) {
+                            $labels[$label] = $option['text'];
+                            break;
+                        }
+                    }
+                }
+            }
+        } else {
+            // For other types, we can use the label directly.
+            switch ($type) {
+                case 'duration':
+                    $labels[$label] = $this->format_duration($value);
+                    break;
+                case 'date_time_selector':
+                    $labels[$label] = userdate($value);
+                    break;
+                default:
+                    $labels[$label] = $value;
+            }
+        }
+        return $labels;
     }
 
     /**
@@ -456,7 +493,9 @@ class manager {
                 $formdata['confirmation'] = true;
                 foreach ($this->steps as $stepkey => $step) {
                     foreach ($step['labels'] as $key => $value) {
-                        $formdata['fields'][] = ['label' => $key, 'value' => $value];
+                        if (!empty($value)) {
+                            $formdata['fields'][] = ['label' => $key, 'value' => $value];
+                        }
                     }
                 }
             } else {
@@ -601,7 +640,10 @@ class manager {
      *
      */
     private function format_duration($seconds) {
-        if ($seconds <= 0) {
+        if (
+            is_array($seconds) ||
+            $seconds <= 0
+        ) {
             return '0 seconds';
         }
 
