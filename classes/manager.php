@@ -343,6 +343,10 @@ class manager {
                 }
             }
         } else {
+            // Depending on moodle version, value (timestamp) might stored in an array.
+            if (is_array($value)) {
+                $value = reset($value);
+            };
             // For other types, we can use the label directly.
             switch ($type) {
                 case 'duration':
