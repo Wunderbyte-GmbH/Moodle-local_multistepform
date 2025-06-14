@@ -260,8 +260,9 @@ class manager {
             if (is_array($value)) {
                 foreach ($value as $repeatkey => $repeatvalue) {
                     $repeatelementkey = $key . '[' . $repeatkey . ']';
-                    $element = $mform->getElement($repeatelementkey);
-                    if ($element->getType() == 'HTML_QuickForm_Error') {
+                    if ($mform->elementExists($repeatelementkey)) {
+                        $element = $mform->getElement($repeatelementkey);
+                    } else {
                         $element = $mform->getElement($key);
                     }
                     $labels = $this->set_label_values($element, $value);
