@@ -68,12 +68,11 @@
     min-height: 300px;
 }
 
-.multiform-container-topwrapper .fade-in {
+.fade-in {
     opacity: 1;
     transition: opacity 0.3s ease;
 }
-
-.multiform-container-topwrapper .fade-out {
+.fade-out {
     opacity: 0;
     transition: opacity 0.3s ease;
 }
