@@ -85,7 +85,7 @@ class load_step extends external_api {
             'formclass' => $data['formclass'] ?? '',
             'data' => json_encode($data),
             'template' => $data['template'] ?? $manager->get_template(),
-            'returnurl' => $data['returnurl'] ?? '',
+            'returnurl' => '',
             'js' => $jsfooter,
         ];
     }

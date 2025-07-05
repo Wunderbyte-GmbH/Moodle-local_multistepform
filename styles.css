@@ -62,3 +62,22 @@
     font-size: 0.875rem;
     color: #4285f4;
 }
+
+.multistep-form-container,
+.multiform-container-topwrapper {
+    min-height: 300px;
+}
+
+.multiform-container-topwrapper .fade-in {
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.multiform-container-topwrapper .fade-out {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+[id^="fitem_id_deleteelement"] .col-form-label {
+    display: none;
+}

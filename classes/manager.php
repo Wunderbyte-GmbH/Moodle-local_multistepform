@@ -78,7 +78,14 @@ class manager {
      *
      * @var string $template
      */
-    protected $template = 'local_multistepform/multistepform';
+    protected $template = 'local_multistepform/multistepformwrapper';
+
+    /**
+     * The template to render.
+     *
+     * @var string $template
+     */
+    protected $ajaxtemplate = 'local_multistepform/multistepform';
 
     /**
      * Returnurl
@@ -458,7 +465,7 @@ class manager {
      *
      */
     public function get_template(): string {
-        return $this->template;
+        return $this->ajaxtemplate;
     }
 
     /**
@@ -490,7 +497,7 @@ class manager {
             $formdata = [
                 'step' => $step,
                 'recordid' => $this->get_recordid(),
-                'template' => $this->template,
+                'template' => $this->ajaxtemplate,
                 'uniqueid' => $this->uniqueid,
                 'confirmation' => false,
             ];
@@ -547,7 +554,7 @@ class manager {
             $formdata['disableprevious'] = ($step == 1 || !$this->can_move_between_steps()) ? true : false;
             $formdata['disablenext'] = $step == count($this->steps) ? true : false;
             $formdata['totalsteps'] = count($this->steps);
-
+            $formdata['islaststep'] = $step == count($this->steps);
             $formdata['uniqueid'] = $this->uniqueid;
             $formdata['recordid'] = $this->recordid;
 

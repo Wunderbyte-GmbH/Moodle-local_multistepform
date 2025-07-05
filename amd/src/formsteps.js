@@ -95,36 +95,61 @@ function loadStep(uniqueid, recordid, step) {
     if (!multiformcontainer) {
         return;
     }
+    const container = multiformcontainer.querySelector(SELECTORS.FORMCONTAINER);
+    const topwrapper = multiformcontainer.closest('.multiform-container-topwrapper');
+    container.classList.remove('fade-in');
+    void container.offsetWidth;
+    container.classList.add('fade-out');
 
-    Ajax.call([{
-        methodname: 'local_multistepform_load_step',
-        args: {
-            uniqueid: uniqueid,
-            recordid: recordid,
-            step: step,
-        },
-        done: (response) => {
-
-            if (response.returnurl.length > 0) {
-                window.location.href = response.returnurl;
-                return;
+    const onFadeOutEnd = () => {
+        container.removeEventListener('transitionend', onFadeOutEnd);
+        setTimeout(() => {
+            if (step > 0) {
+            dynamicForm = null;
             }
+        }, 300);// Reset dynamicForm to ensure a fresh start
+        // Step 3: Load next step content
+        Ajax.call([{
+            methodname: 'local_multistepform_load_step',
+            args: { uniqueid, recordid, step },
+            done: response => {
+                if (response.returnurl?.length > 0) {
+                    window.location.href = response.returnurl;
+                    return;
+                }
 
-            Templates.renderForPromise(response.template, JSON.parse(response.data)).then(({html, js}) => {
-                // We add the footer js to the html.
-                html = html + response.js;
-                Templates.replaceNode(SELECTORS.MULTISTEPFORMCONTAINER + '[data-uniqueid="' + uniqueid + '"]', html, js);
+                Templates.renderForPromise(response.template, JSON.parse(response.data)).then(({ html, js }) => {
+                    // Prepare new content
+                    const tempWrapper = document.createElement('div');
+                    tempWrapper.innerHTML = html;
 
-                return true;
-            }).catch(e => {
-                // eslint-disable-next-line no-console
-                console.log(e);
-            });
-        },
-        fail: (error) => {
-            notification.exception(error);
-        },
-    }]);
+                    Templates.runTemplateJS(js, tempWrapper);
+
+                    const newFormContainer = tempWrapper.querySelector(SELECTORS.FORMCONTAINER);
+                    const formclass = tempWrapper.querySelector('[data-formclass]')?.getAttribute('data-formclass');
+
+                    if (formclass && newFormContainer) {
+                        initializeForm(newFormContainer, formclass, []);
+                    }
+
+                    // Step 4: Replace the content
+                    topwrapper.innerHTML = '';
+                    topwrapper.appendChild(tempWrapper.firstElementChild);
+
+                    // Step 5: Trigger fade-in
+                    requestAnimationFrame(() => {
+                        newFormContainer.classList.remove('fade-out');
+                        newFormContainer.classList.add('fade-in');
+                    });
+
+                }).catch(notification.exception);
+            },
+            fail: notification.exception
+        }]);
+    };
+
+    // Attach the fade-out end listener
+    container.addEventListener('transitionend', onFadeOutEnd, { once: true });
 }
 
 /**
@@ -169,7 +194,6 @@ function initializeForm(container, formclass, data = []) {
 
         if (dynamicForm) {
             dynamicForm.addEventListener(dynamicForm.events.FORM_SUBMITTED, () => {
-                dynamicForm = null;
 
                 loadStep(uniqueid, recordid, currentstep);
             });
@@ -178,7 +202,6 @@ function initializeForm(container, formclass, data = []) {
 
                 // When we tried to go to the previous page, even when the validation fails, we load the step.
                 if ((currentstep + 1) == previousstep) {
-                    dynamicForm = null;
                     loadStep(uniqueid, recordid, currentstep);
                 } else {
                     currentstep = previousstep;
