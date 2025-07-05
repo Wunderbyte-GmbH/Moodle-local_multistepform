@@ -23,9 +23,6 @@ var previousstep = 0;
 
 export const init = (uniqueid, recordid, initialstep, formclass, data) => {
 
-    // eslint-disable-next-line no-console
-    console.log(data);
-
     const multiformcontainer = document.querySelector(
         SELECTORS.MULTISTEPFORMCONTAINER + '[data-uniqueid="' + uniqueid + '"]');
     if (!multiformcontainer) {
@@ -58,27 +55,16 @@ export const init = (uniqueid, recordid, initialstep, formclass, data) => {
                     break;
             }
 
-            previousstep = oldstep; // Always set this AFTER deciding the new step
-
-            if (currentstep > 0) {
-                loadStep(uniqueid, recordid, currentstep);
-                loadAutocompleteElements();
-                return;
-            }
-
-            if (dynamicForms[oldstep]) {
-                dynamicForms[oldstep].submitFormAjax().then(() => {
-                    loadAutocompleteElements();
+            previousstep = oldstep;
+            const form = dynamicForms[oldstep];
+            if (form) {
+                form.submitFormAjax().then(() => {
                     return true;
                 }).catch(e => {
-                    currentstep = oldstep;
-                    // Revert to old step on error.
-                    // eslint-disable-next-line no-console
-                    console.log(e);
+                    notification.exception(e);
                 });
             } else {
                 loadStep(uniqueid, recordid, currentstep);
-                loadAutocompleteElements();
             }
         });
     });
@@ -168,31 +154,26 @@ function initializeForm(container, formclass, data = []) {
     const uniqueid = container?.closest(SELECTORS.MULTISTEPFORMCONTAINER)?.getAttribute('data-uniqueid') ?? '';
     const recordid = container?.closest(SELECTORS.MULTISTEPFORMCONTAINER)?.getAttribute('data-recordid') ?? '';
 
-    if (!dynamicForms[currentstep] && uniqueid.length > 0) {
+    const alreadyInitialized = dynamicForms[currentstep]
+        && container.dataset.initializedStep == currentstep;
 
-        dynamicForms[currentstep] = new DynamicForm(
-            container,
-            formclass,
-            data,
-        );
+    if (!alreadyInitialized && uniqueid.length > 0) {
+        dynamicForms[currentstep] = new DynamicForm(container, formclass, data);
+        container.dataset.initializedStep = currentstep;
+
         const dynamicForm = dynamicForms[currentstep];
 
-        if (dynamicForm) {
-            dynamicForm.addEventListener(dynamicForm.events.FORM_SUBMITTED, () => {
+        dynamicForm.addEventListener(dynamicForm.events.FORM_SUBMITTED, () => {
+            loadStep(uniqueid, recordid, currentstep);
+        });
 
+        dynamicForm.addEventListener(dynamicForm.events.SERVER_VALIDATION_ERROR, () => {
+            if ((currentstep + 1) === previousstep) {
                 loadStep(uniqueid, recordid, currentstep);
-            });
-
-            dynamicForm.addEventListener(dynamicForm.events.SERVER_VALIDATION_ERROR, () => {
-
-                // When we tried to go to the previous page, even when the validation fails, we load the step.
-                if ((currentstep + 1) == previousstep) {
-                    loadStep(uniqueid, recordid, currentstep);
-                } else {
-                    currentstep = previousstep;
-                }
-            });
-        }
+            } else {
+                currentstep = previousstep;
+            }
+        });
 
         loadAutocompleteElements();
     }
@@ -205,49 +186,45 @@ function initializeForm(container, formclass, data = []) {
  *
  */
 function loadAutocompleteElements() {
-// Wait for DOM to update after Moodle repeats the form elements
-    window.requestAnimationFrame(() => {
-        // eslint-disable-next-line no-console
-        console.log('make sure all autocomplete elements are here');
-        setTimeout(() => {
-            // eslint-disable-next-line no-console
-            console.log('load them now');
-            require(['core/form-autocomplete'], (AutoComplete) => {
-                document.querySelectorAll('div[data-fieldtype="autocomplete"]').forEach((select) => {
-                    const alreadyEnhanced = select.querySelector('.form-autocomplete-downarrow');
+    require(['core/form-autocomplete'], (AutoComplete) => {
+        // Enhance all uninitialized autocomplete fields
+        document.querySelectorAll('div[data-fieldtype="autocomplete"]').forEach((select) => {
+            const alreadyEnhanced = select.querySelector('.form-autocomplete-downarrow');
 
-                    if (!alreadyEnhanced && AutoComplete.enhance) {
-                        AutoComplete.enhance(select.querySelector('select'));
-                    }
-                });
-            });
-            const packageSelect = document.querySelector('#id_message_package');
-            if (packageSelect) {
-                packageSelect.addEventListener('change', (e) => {
-                const selectedPackageId = e.target.value;
-                e.stopImmediatePropagation();
-
-                // Deselect all selected messageids.
-                const messageSelect = document.querySelector('#id_messageids');
-                if (messageSelect) {
-                    Array.from(messageSelect.options).forEach(option => {
-                        option.selected = false;
-                    });
+            if (!alreadyEnhanced && AutoComplete.enhance) {
+                const dropdown = select.querySelector('select');
+                if (dropdown) {
+                    AutoComplete.enhance(dropdown);
                 }
+            }
+        });
+    });
 
-                if (dynamicForms[currentstep]) {
-                    dynamicForms[currentstep].submitFormAjax({
-                        packageid: selectedPackageId
-                    }).then(() => {
-                        // The form will be reloaded by SERVER_VALIDATION_ERROR below.
-                        return;
-                    }).catch(err => {
-                        // eslint-disable-next-line no-console
-                        console.error(err);
-                    });
-                }
+    // Set up listener only once for package change
+    const packageSelect = document.querySelector('#id_message_package');
+    if (packageSelect && !packageSelect.dataset.listenerAttached) {
+        packageSelect.dataset.listenerAttached = 'true'; // Prevent duplicate listeners
+        packageSelect.addEventListener('change', (e) => {
+            const selectedPackageId = e.target.value;
+            e.stopImmediatePropagation();
+
+            // Deselect all messageids
+            const messageSelect = document.querySelector('#id_messageids');
+            if (messageSelect) {
+                Array.from(messageSelect.options).forEach(option => {
+                    option.selected = false;
                 });
             }
-        }, 400);
-    });
+
+            if (dynamicForms[currentstep]) {
+                dynamicForms[currentstep].submitFormAjax({
+                    packageid: selectedPackageId
+                }).then(() => {
+                    // Form will reload through validation handler
+                }).catch(err => {
+                    notification.exception(err);
+                });
+            }
+        });
+    }
 }
