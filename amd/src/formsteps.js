@@ -17,7 +17,7 @@ const SELECTORS = {
     MULTISTEPFORMCONTAINER: 'div.multistep-form-wrapper',
 };
 
-var dynamicForm = null;
+var dynamicForms = {};
 var currentstep = 0;
 var previousstep = 0;
 
@@ -38,22 +38,17 @@ export const init = (uniqueid, recordid, initialstep, formclass, data) => {
 
     multiformcontainer.querySelectorAll('[data-step]').forEach(button => {
         button.addEventListener('click', e => {
-
             const direction = e.currentTarget.getAttribute('data-step');
 
-            previousstep = currentstep > 0 ? currentstep : previousstep;
+            const oldstep = currentstep; // Save current before changing
+
             switch (direction) {
                 case 'next':
                     currentstep++;
                     break;
                 case 'previous':
-                    if (currentstep < 0) {
-                        // If we are on the review page, we fake steps in a way that..
-                        // .. we land on the last page and previous page is set to last but one.
-                        currentstep = previousstep;
-                    } else {
-                        currentstep--;
-                    }
+                    // If we're on a review step or invalid step, go back to last known valid
+                    currentstep = currentstep < 0 ? previousstep : currentstep - 1;
                     break;
                 case 'submit':
                     currentstep = -1;
@@ -63,15 +58,27 @@ export const init = (uniqueid, recordid, initialstep, formclass, data) => {
                     break;
             }
 
-            if (!dynamicForm) {
+            previousstep = oldstep; // Always set this AFTER deciding the new step
+
+            if (currentstep > 0) {
                 loadStep(uniqueid, recordid, currentstep);
-            } else {
-                dynamicForm.submitFormAjax().then(() => {
+                loadAutocompleteElements();
+                return;
+            }
+
+            if (dynamicForms[oldstep]) {
+                dynamicForms[oldstep].submitFormAjax().then(() => {
+                    loadAutocompleteElements();
                     return true;
                 }).catch(e => {
+                    currentstep = oldstep;
+                    // Revert to old step on error.
                     // eslint-disable-next-line no-console
                     console.log(e);
                 });
+            } else {
+                loadStep(uniqueid, recordid, currentstep);
+                loadAutocompleteElements();
             }
         });
     });
@@ -95,7 +102,10 @@ function loadStep(uniqueid, recordid, step) {
     if (!multiformcontainer) {
         return;
     }
-
+    const container = multiformcontainer.querySelector(SELECTORS.FORMCONTAINER) || multiformcontainer;
+    container.classList.remove('fade-in');
+    void container.offsetWidth;
+    container.classList.add('fade-out');
     Ajax.call([{
         methodname: 'local_multistepform_load_step',
         args: {
@@ -114,7 +124,6 @@ function loadStep(uniqueid, recordid, step) {
                 // We add the footer js to the html.
                 html = html + response.js;
                 Templates.replaceNode(SELECTORS.MULTISTEPFORMCONTAINER + '[data-uniqueid="' + uniqueid + '"]', html, js);
-
                 return true;
             }).catch(e => {
                 // eslint-disable-next-line no-console
@@ -159,17 +168,17 @@ function initializeForm(container, formclass, data = []) {
     const uniqueid = container?.closest(SELECTORS.MULTISTEPFORMCONTAINER)?.getAttribute('data-uniqueid') ?? '';
     const recordid = container?.closest(SELECTORS.MULTISTEPFORMCONTAINER)?.getAttribute('data-recordid') ?? '';
 
-    if (!dynamicForm && uniqueid.length > 0) {
+    if (!dynamicForms[currentstep] && uniqueid.length > 0) {
 
-        dynamicForm = new DynamicForm(
+        dynamicForms[currentstep] = new DynamicForm(
             container,
             formclass,
             data,
         );
+        const dynamicForm = dynamicForms[currentstep];
 
         if (dynamicForm) {
             dynamicForm.addEventListener(dynamicForm.events.FORM_SUBMITTED, () => {
-                dynamicForm = null;
 
                 loadStep(uniqueid, recordid, currentstep);
             });
@@ -178,7 +187,6 @@ function initializeForm(container, formclass, data = []) {
 
                 // When we tried to go to the previous page, even when the validation fails, we load the step.
                 if ((currentstep + 1) == previousstep) {
-                    dynamicForm = null;
                     loadStep(uniqueid, recordid, currentstep);
                 } else {
                     currentstep = previousstep;
@@ -227,8 +235,8 @@ function loadAutocompleteElements() {
                     });
                 }
 
-                if (dynamicForm) {
-                    dynamicForm.submitFormAjax({
+                if (dynamicForms[currentstep]) {
+                    dynamicForms[currentstep].submitFormAjax({
                         packageid: selectedPackageId
                     }).then(() => {
                         // The form will be reloaded by SERVER_VALIDATION_ERROR below.
