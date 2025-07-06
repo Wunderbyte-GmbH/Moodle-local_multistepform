@@ -545,7 +545,7 @@ class manager {
             ));
 
             $formdata['disableprevious'] = ($step == 1 || !$this->can_move_between_steps()) ? true : false;
-            $formdata['disablenext'] = $step == count($this->steps) ? true : false;
+            $formdata['disablenext'] = $step == count($this->steps) ? true : null;
             $formdata['totalsteps'] = count($this->steps);
 
             $formdata['uniqueid'] = $this->uniqueid;

@@ -83,9 +83,11 @@
                 <button class="btn btn-success submit-form {{^disablenext}} d-none {{/disablenext}}" data-step='submit'>
                     <i class="fa fa-check-circle me-1"></i>{{#str}} submit {{/str}}
                 </button>
+                {{^disablenext}}
                 <button class="btn btn-primary" {{#disablenext}} disabled {{/disablenext}} data-step='next'>
                     {{#str}} next {{/str}}<i class="fa fa-arrow-right ms-2"></i>
                 </button>
+                {{/disablenext}}
             </div>
         </div>
     {{/confirmation}}
