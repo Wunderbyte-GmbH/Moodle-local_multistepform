@@ -18,7 +18,7 @@ const SELECTORS = {
 };
 
 var dynamicForms = {};
-var currentstep = 0;
+var currentstep = 1;
 var previousstep = 0;
 
 export const init = (uniqueid, recordid, initialstep, formclass, data) => {

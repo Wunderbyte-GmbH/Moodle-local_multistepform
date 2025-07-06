@@ -38,7 +38,7 @@ echo $OUTPUT->header();
 $data = [
     1 => [
         'label' => get_string('step', 'local_multistepform', 1),
-        'formclass' => '"local_multistepform\\\\form\\\\step1"',
+        'formclass' => 'local_multistepform\\\\form\\\\step1',
         'stepidentifier' => 'firststep',
         'formdata' => [
             'id' => 1,
