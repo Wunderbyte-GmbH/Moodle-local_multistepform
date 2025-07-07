@@ -91,7 +91,7 @@ function loadStep(uniqueid, recordid, step) {
     const container = multiformcontainer.querySelector(SELECTORS.FORMCONTAINER) || multiformcontainer;
     container.classList.remove('fade-in');
     void container.offsetWidth;
-    container.classList.add('fade-out');
+
     Ajax.call([{
         methodname: 'local_multistepform_load_step',
         args: {
@@ -100,7 +100,7 @@ function loadStep(uniqueid, recordid, step) {
             step: step,
         },
         done: (response) => {
-
+            container.classList.add('fade-out');
             if (response.returnurl.length > 0) {
                 window.location.href = response.returnurl;
                 return;
@@ -163,7 +163,8 @@ function initializeForm(container, formclass, data = []) {
 
         const dynamicForm = dynamicForms[currentstep];
 
-        dynamicForm.addEventListener(dynamicForm.events.FORM_SUBMITTED, () => {
+        dynamicForm.addEventListener(dynamicForm.events.FORM_SUBMITTED, (e) => {
+            e.preventDefault(); // Prevent default form submission
             loadStep(uniqueid, recordid, currentstep);
         });
 
