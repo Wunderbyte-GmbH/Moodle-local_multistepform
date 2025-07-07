@@ -91,7 +91,7 @@ function loadStep(uniqueid, recordid, step) {
     const container = multiformcontainer.querySelector(SELECTORS.FORMCONTAINER) || multiformcontainer;
     container.classList.remove('fade-in');
     void container.offsetWidth;
-
+    container.classList.add('fade-out');
     Ajax.call([{
         methodname: 'local_multistepform_load_step',
         args: {
@@ -187,45 +187,49 @@ function initializeForm(container, formclass, data = []) {
  *
  */
 function loadAutocompleteElements() {
-    require(['core/form-autocomplete'], (AutoComplete) => {
-        // Enhance all uninitialized autocomplete fields
-        document.querySelectorAll('div[data-fieldtype="autocomplete"]').forEach((select) => {
-            const alreadyEnhanced = select.querySelector('.form-autocomplete-downarrow');
+// Wait for DOM to update after Moodle repeats the form elements
+    window.requestAnimationFrame(() => {
+        // eslint-disable-next-line no-console
+        console.log('make sure all autocomplete elements are here');
+        setTimeout(() => {
+            // eslint-disable-next-line no-console
+            console.log('load them now');
+            require(['core/form-autocomplete'], (AutoComplete) => {
+                document.querySelectorAll('div[data-fieldtype="autocomplete"]').forEach((select) => {
+                    const alreadyEnhanced = select.querySelector('.form-autocomplete-downarrow');
 
-            if (!alreadyEnhanced && AutoComplete.enhance) {
-                const dropdown = select.querySelector('select');
-                if (dropdown) {
-                    AutoComplete.enhance(dropdown);
+                    if (!alreadyEnhanced && AutoComplete.enhance) {
+                        AutoComplete.enhance(select.querySelector('select'));
+                    }
+                });
+            });
+            const packageSelect = document.querySelector('#id_message_package');
+            if (packageSelect) {
+                packageSelect.addEventListener('change', (e) => {
+                const selectedPackageId = e.target.value;
+                e.stopImmediatePropagation();
+
+                // Deselect all selected messageids.
+                const messageSelect = document.querySelector('#id_messageids');
+                if (messageSelect) {
+                    Array.from(messageSelect.options).forEach(option => {
+                        option.selected = false;
+                    });
                 }
+
+                if (dynamicForms[currentstep]) {
+                    dynamicForms[currentstep].submitFormAjax({
+                        packageid: selectedPackageId
+                    }).then(() => {
+                        // The form will be reloaded by SERVER_VALIDATION_ERROR below.
+                        return;
+                    }).catch(err => {
+                        // eslint-disable-next-line no-console
+                        console.error(err);
+                    });
+                }
+                });
             }
-        });
+        }, 400);
     });
-
-    // Set up listener only once for package change
-    const packageSelect = document.querySelector('#id_message_package');
-    if (packageSelect && !packageSelect.dataset.listenerAttached) {
-        packageSelect.dataset.listenerAttached = 'true'; // Prevent duplicate listeners
-        packageSelect.addEventListener('change', (e) => {
-            const selectedPackageId = e.target.value;
-            e.stopImmediatePropagation();
-
-            // Deselect all messageids
-            const messageSelect = document.querySelector('#id_messageids');
-            if (messageSelect) {
-                Array.from(messageSelect.options).forEach(option => {
-                    option.selected = false;
-                });
-            }
-
-            if (dynamicForms[currentstep]) {
-                dynamicForms[currentstep].submitFormAjax({
-                    packageid: selectedPackageId
-                }).then(() => {
-                    // Form will reload through validation handler
-                }).catch(err => {
-                    notification.exception(err);
-                });
-            }
-        });
-    }
 }
