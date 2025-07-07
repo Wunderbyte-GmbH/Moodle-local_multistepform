@@ -70,11 +70,11 @@
 
 .fade-in {
     opacity: 1;
-    transition: opacity 0.3s ease;
+    transition: opacity 1s ease;
 }
 .fade-out {
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: opacity 1s ease;
 }
 
 [id^="fitem_id_deleteelement"] .col-form-label.d-flex {

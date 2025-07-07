@@ -100,7 +100,6 @@ function loadStep(uniqueid, recordid, step) {
             step: step,
         },
         done: (response) => {
-            container.classList.add('fade-out');
             if (response.returnurl.length > 0) {
                 window.location.href = response.returnurl;
                 return;
@@ -109,7 +108,18 @@ function loadStep(uniqueid, recordid, step) {
             Templates.renderForPromise(response.template, JSON.parse(response.data)).then(({html, js}) => {
                 // We add the footer js to the html.
                 html = html + response.js;
-                Templates.replaceNode(SELECTORS.MULTISTEPFORMCONTAINER + '[data-uniqueid="' + uniqueid + '"]', html, js);
+                Templates.replaceNode(SELECTORS.MULTISTEPFORMCONTAINER +
+                    '[data-uniqueid="' + uniqueid + '"]', html, js);
+                    const newContainer = document.querySelector(
+                        SELECTORS.MULTISTEPFORMCONTAINER + '[data-uniqueid="' + uniqueid + '"]'
+                    ).querySelector(SELECTORS.FORMCONTAINER);
+
+                    if (newContainer) {
+                        newContainer.classList.add('fade-out');
+                        void newContainer.offsetWidth;
+                        newContainer.classList.remove('fade-out');
+                        newContainer.classList.add('fade-in');
+                    }
                 return true;
             }).catch(e => {
                 // eslint-disable-next-line no-console
