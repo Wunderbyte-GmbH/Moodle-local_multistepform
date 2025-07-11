@@ -22,7 +22,7 @@
  * @license   http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-
+$string['cachedef_multistepform'] = 'Cache for multistepform';
 $string['nofieldsreview'] = 'There is no data to review.';
 $string['pluginname'] = 'Multi-step form';
 $string['reviewintro'] = 'Please check the details below before submitting the form.';
