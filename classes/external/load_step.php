@@ -54,6 +54,7 @@ class load_step extends external_api {
      * Execute the function.
      *
      * @param mixed $uniqueid
+     * @param string $recordid
      * @param mixed $step
      *
      * @return [type]

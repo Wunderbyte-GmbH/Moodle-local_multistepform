@@ -30,7 +30,7 @@ use local_multistepform\manager;
 /**
  * Demo step 1 form.
  */
-class step1 extends dynamic_form {
+class step extends dynamic_form {
     /**
      * Definition.
      *
@@ -112,9 +112,8 @@ class step1 extends dynamic_form {
 
     /**
      * Each step can provide a specific way how to extract and return the data.
-     *
+     * @param array $step
      * @return array
-     *
      */
     public function get_data_to_persist(array $step): array {
         return $step;

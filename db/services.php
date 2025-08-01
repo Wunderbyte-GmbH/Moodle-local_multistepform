@@ -17,7 +17,7 @@
 /**
  * Webservice to reload table.
  *
- * @package     local_multiform
+ * @package     local_multistepform
  * @category    upgrade
  * @copyright   2021 Wunderbyte GmbH <info@wunderbyte.at>
  * @license     https://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later

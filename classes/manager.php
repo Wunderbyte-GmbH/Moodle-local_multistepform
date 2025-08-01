@@ -89,7 +89,7 @@ class manager {
 
     /**
      * Constructor for the manager class.
-     *
+     * @param string $uniqueid
      * @param array $steps
      * @param int $recordid
      * @param bool $canmovesteps
@@ -134,12 +134,11 @@ class manager {
 
     /**
      * Definition.
-     *
+     * @param MoodleQuickForm $mform
+     * @param array $data
      * @return void
-     *
      */
     public function definition(MoodleQuickForm $mform, array $data): void {
-
         $uniqueid = $data['uniqueid'];
         $step = $data['step'];
         $stepidentifier = $data['stepidentifier'] ?? '';
@@ -309,6 +308,8 @@ class manager {
 
     /**
      * Load the data from the database.
+     * @param mixed $element
+     * @param mixed $value
      * @return array
      */
     protected function set_label_values($element, $value): array {
@@ -413,9 +414,7 @@ class manager {
 
     /**
      * Set the hasreview.
-     *
-     * @param string $template
-     *
+     * @param bool $hasreview
      * @return void
      *
      */

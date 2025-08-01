@@ -25,8 +25,6 @@
 namespace local_multistepform\local;
 
 use cache;
-use MoodleQuickForm;
-use stdClass;
 
 /**
  * Cachestore class.
@@ -55,7 +53,6 @@ class cachestore {
      *
      * @param string $uniqueid
      * @param int $recordid
-     * @param string $step
      * @param array $data
      *
      * @return void
