@@ -265,7 +265,7 @@ class manager {
                     } else {
                         $element = $mform->getElement($key);
                     }
-                    $labels = $this->set_label_values($element, $value);
+                    $labels[] = $this->set_label_values($element, $value);
 
                     $label = $element->getLabel();
                     $options = $this->get_element_options($element);
@@ -287,9 +287,15 @@ class manager {
                 continue;
             }
             $element = $mform->getElement($key);
-            $labels = $this->set_label_values($element, $value);
+            $tmplabel = $this->set_label_values($element, $value);
+            if (!empty($tmplabel)) {
+                foreach ($tmplabel as $key => $value) {
+                    $labels[$key] = $value;
+                }
+            }
         }
         if (!empty($flattenrepeatelement)) {
+            $labels = [];
             foreach ($flattenrepeatelement as $flattenedkey => $flattenedvalue) {
                 $labels[$flattenedkey] = implode(', ', $flattenedvalue);
             }
