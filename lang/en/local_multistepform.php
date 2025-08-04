@@ -23,6 +23,8 @@
  */
 
 $string['cachedef_multistepform'] = 'Cache for multistepform';
+$string['ischecked'] = 'is checked';
+$string['isnotchecked'] = 'is not checked';
 $string['nofieldsreview'] = 'There is no data to review.';
 $string['pluginname'] = 'Multi-step form';
 $string['reviewintro'] = 'Please check the details below before submitting the form.';

@@ -337,6 +337,10 @@ class manager {
                     }
                 }
                 $labels[$label] = implode(', ', $multilabels);
+            } else if ($type == 'advcheckbox') {
+                $labels[$label] = $value == '1' ?
+                    get_string('ischecked', 'local_multistepform') :
+                    get_string('isnotchecked', 'local_multistepform');
             } else {
                 if (isset($options[$value])) {
                     // For other types, we can use the label directly.
